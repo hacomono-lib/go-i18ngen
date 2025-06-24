@@ -1,3 +1,4 @@
+// Package model defines the data structures and logic for building message and placeholder definitions.
 package model
 
 import (

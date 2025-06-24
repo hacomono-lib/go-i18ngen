@@ -1,10 +1,11 @@
 package parser
 
 import (
-	"github.com/hacomono-lib/go-i18ngen/internal/model"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/hacomono-lib/go-i18ngen/internal/model"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -115,7 +116,7 @@ func TestParseMessages(t *testing.T) {
 	// Create temporary directory
 	tempDir, err := os.MkdirTemp("", "i18ngen_test")
 	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	// Create test message file with only valid syntax (no duplicate placeholders)
 	messageFile := filepath.Join(tempDir, "messages.yaml")
@@ -167,7 +168,7 @@ func TestParseMessagesWithJSON(t *testing.T) {
 	// Create temporary directory
 	tempDir, err := os.MkdirTemp("", "i18ngen_json_test")
 	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	// Create JSON format test message file with suffix notation
 	messageFile := filepath.Join(tempDir, "messages.json")
@@ -197,7 +198,7 @@ func TestParseMessagesDuplicatePlaceholderValidation(t *testing.T) {
 	// Create temporary directory
 	tempDir, err := os.MkdirTemp("", "i18ngen_validation_test")
 	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	// Create test message file with duplicate placeholders (should fail)
 	messageFile := filepath.Join(tempDir, "messages.yaml")
@@ -228,7 +229,7 @@ func TestDecodeMessageFileErrors(t *testing.T) {
 	// Create temporary directory
 	tempDir, err := os.MkdirTemp("", "i18ngen_error_test")
 	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	// Create invalid YAML file
 	invalidFile := filepath.Join(tempDir, "invalid.yaml")
@@ -259,7 +260,7 @@ func TestParsePlaceholders(t *testing.T) {
 	// Create temporary directory
 	tempDir, err := os.MkdirTemp("", "i18ngen_placeholder_test")
 	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	// Create test placeholder files
 	// Simple format files
@@ -301,7 +302,7 @@ func TestParsePlaceholdersCompoundFormat(t *testing.T) {
 	// Create temporary directory
 	tempDir, err := os.MkdirTemp("", "i18ngen_compound_test")
 	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	// Create compound format file
 	compoundFile := filepath.Join(tempDir, "validation.yaml")
@@ -341,7 +342,7 @@ func TestParsePlaceholdersInvalidKindName(t *testing.T) {
 	// Create temporary directory
 	tempDir, err := os.MkdirTemp("", "i18ngen_invalid_kind_test")
 	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	// Create file with invalid kind name (contains hyphens)
 	invalidFile := filepath.Join(tempDir, "invalid-kind.yaml")
@@ -360,7 +361,7 @@ func TestParsePlaceholdersInvalidItemID(t *testing.T) {
 	// Create temporary directory
 	tempDir, err := os.MkdirTemp("", "i18ngen_invalid_id_test")
 	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	// Create file with invalid item ID (contains hyphens)
 	invalidFile := filepath.Join(tempDir, "valid.yaml")
@@ -427,7 +428,7 @@ func TestDecodeCompoundFile(t *testing.T) {
 	// Create temporary directory
 	tempDir, err := os.MkdirTemp("", "i18ngen_decode_test")
 	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	// Test YAML compound file
 	yamlFile := filepath.Join(tempDir, "test.yaml")
@@ -441,7 +442,7 @@ Item2:
 
 	f, err := os.Open(yamlFile)
 	require.NoError(t, err)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	result, err := decodeCompoundFile(f, ".yaml")
 	require.NoError(t, err)
@@ -457,7 +458,7 @@ func TestDecodeSimpleFile(t *testing.T) {
 	// Create temporary directory
 	tempDir, err := os.MkdirTemp("", "i18ngen_decode_simple_test")
 	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	// Test YAML simple file
 	yamlFile := filepath.Join(tempDir, "simple.yaml")
@@ -467,7 +468,7 @@ Item2: "Value2"`
 
 	f, err := os.Open(yamlFile)
 	require.NoError(t, err)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	result, err := decodeSimpleFile(f, ".yaml")
 	require.NoError(t, err)
@@ -483,7 +484,7 @@ func TestParsePlaceholdersJSONFormat(t *testing.T) {
 	// Create temporary directory
 	tempDir, err := os.MkdirTemp("", "i18ngen_json_test")
 	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	// Create JSON compound format file
 	jsonFile := filepath.Join(tempDir, "field.json")

@@ -1,3 +1,4 @@
+// Package model defines the data structures and logic for building message and placeholder definitions.
 package model
 
 import (
@@ -10,7 +11,7 @@ import (
 
 // Pre-compiled regular expressions for better performance
 var (
-	digitStartPattern = regexp.MustCompile(`^[0-9]`)
+	digitStartPattern = regexp.MustCompile(`^\d`)
 )
 
 // FieldInfo represents a field with optional suffix for enhanced naming
@@ -219,7 +220,12 @@ func Build(messages []MessageSource, placeholders []PlaceholderSource, locales [
 	return &defs, nil
 }
 
-func BuildTemplates(messages []MessageSource, placeholders []PlaceholderSource, locales []string) ([]templatex.MessageTemplate, []templatex.PlaceholderTemplate, error) {
+// BuildTemplates builds message and placeholder templates from source data
+func BuildTemplates(
+	messages []MessageSource,
+	placeholders []PlaceholderSource,
+	locales []string,
+) ([]templatex.MessageTemplate, []templatex.PlaceholderTemplate, error) {
 	var messageTemplates []templatex.MessageTemplate
 	var placeholderTemplates []templatex.PlaceholderTemplate
 

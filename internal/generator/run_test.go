@@ -15,7 +15,7 @@ func TestRun_Success(t *testing.T) {
 	// Create temporary directory
 	tempDir, err := os.MkdirTemp("", "i18ngen_test")
 	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	// Create subdirectories
 	messagesDir := filepath.Join(tempDir, "messages")
@@ -96,7 +96,7 @@ func TestRun_InvalidMessagesGlob(t *testing.T) {
 func TestRun_NoMessageFiles(t *testing.T) {
 	tempDir, err := os.MkdirTemp("", "i18ngen_test")
 	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	messagesDir := filepath.Join(tempDir, "messages")
 	placeholdersDir := filepath.Join(tempDir, "placeholders")
@@ -123,7 +123,7 @@ func TestRun_NoMessageFiles(t *testing.T) {
 func TestRun_InvalidMessageFormat(t *testing.T) {
 	tempDir, err := os.MkdirTemp("", "i18ngen_test")
 	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	messagesDir := filepath.Join(tempDir, "messages")
 	placeholdersDir := filepath.Join(tempDir, "placeholders")
@@ -158,7 +158,7 @@ func TestRun_InvalidMessageFormat(t *testing.T) {
 func TestRun_ReadOnlyOutputDir(t *testing.T) {
 	tempDir, err := os.MkdirTemp("", "i18ngen_test")
 	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	messagesDir := filepath.Join(tempDir, "messages")
 	placeholdersDir := filepath.Join(tempDir, "placeholders")
@@ -177,11 +177,11 @@ func TestRun_ReadOnlyOutputDir(t *testing.T) {
 	// Create read-only directory
 	readOnlyDir := filepath.Join(tempDir, "readonly")
 	require.NoError(t, os.MkdirAll(readOnlyDir, 0755))
-	require.NoError(t, os.Chmod(readOnlyDir, 0444))
+	require.NoError(t, os.Chmod(readOnlyDir, 0400))
 
 	defer func() {
 		// Restore permissions for cleanup
-		os.Chmod(readOnlyDir, 0755)
+		_ = os.Chmod(readOnlyDir, 0755)
 	}()
 
 	cfg := &config.Config{
@@ -212,7 +212,7 @@ func TestRun_ReadOnlyOutputDir(t *testing.T) {
 func TestRun_EmptyLocales(t *testing.T) {
 	tempDir, err := os.MkdirTemp("", "i18ngen_test")
 	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	messagesDir := filepath.Join(tempDir, "messages")
 	placeholdersDir := filepath.Join(tempDir, "placeholders")

@@ -1,3 +1,4 @@
+// Package cmd provides command line interface for the i18n code generator.
 package cmd
 
 type Flags struct {

@@ -12,7 +12,8 @@ var (
 	flags      Flags
 )
 
-func init() {
+// NewGenerateCommand creates and returns the generate command
+func NewGenerateCommand() *cobra.Command {
 	genCmd := &cobra.Command{
 		Use:   "generate",
 		Short: "Generate i18n message and placeholder code",
@@ -34,7 +35,7 @@ func init() {
 	genCmd.Flags().StringVar(&flags.OutputDir, "output", "", "output directory")
 	genCmd.Flags().StringVar(&flags.OutputPackage, "package", "", "output package name")
 
-	rootCmd.AddCommand(genCmd)
+	return genCmd
 }
 
 // MergeConfig merges CLI flags with config file, prioritizing flags

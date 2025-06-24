@@ -102,11 +102,11 @@ func TestPathResolutionBehavior(t *testing.T) {
 	// create temporary directory
 	tempDir, err := os.MkdirTemp("", "i18ngen_path_test")
 	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	// create subdirectory
 	configDir := filepath.Join(tempDir, "config")
-	require.NoError(t, os.MkdirAll(configDir, 0755))
+	require.NoError(t, os.MkdirAll(configDir, 0750))
 
 	t.Run("paths in config.yaml are relative to config file directory", func(t *testing.T) {
 		// create config.yaml file

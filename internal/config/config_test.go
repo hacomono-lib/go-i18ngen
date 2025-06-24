@@ -13,11 +13,11 @@ func TestLoadConfig(t *testing.T) {
 	// create temporary directory
 	tempDir, err := os.MkdirTemp("", "i18ngen_config_test")
 	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	// create subdirectory
 	subDir := filepath.Join(tempDir, "subdir")
-	require.NoError(t, os.MkdirAll(subDir, 0755))
+	require.NoError(t, os.MkdirAll(subDir, 0750))
 
 	// create config file in subdirectory
 	configPath := filepath.Join(subDir, "test_config.yaml")
@@ -30,7 +30,7 @@ placeholders: "placeholders/*.yaml"
 output_dir: "output"
 output_package: "i18n"
 `
-	require.NoError(t, os.WriteFile(configPath, []byte(configContent), 0644))
+	require.NoError(t, os.WriteFile(configPath, []byte(configContent), 0600))
 
 	t.Run("relative path resolution", func(t *testing.T) {
 		config, err := LoadConfig(configPath)
@@ -60,7 +60,7 @@ placeholders: "/absolute/path/placeholders/*.yaml"
 output_dir: "/absolute/path/output"
 output_package: "i18n"
 `
-		require.NoError(t, os.WriteFile(absoluteConfigPath, []byte(absoluteConfigContent), 0644))
+		require.NoError(t, os.WriteFile(absoluteConfigPath, []byte(absoluteConfigContent), 0600))
 
 		config, err := LoadConfig(absoluteConfigPath)
 		require.NoError(t, err)
@@ -94,7 +94,7 @@ output_package: "i18n"
   - unclosed
     brackets: [
 `
-		require.NoError(t, os.WriteFile(invalidConfigPath, []byte(invalidContent), 0644))
+		require.NoError(t, os.WriteFile(invalidConfigPath, []byte(invalidContent), 0600))
 
 		config, err := LoadConfig(invalidConfigPath)
 		assert.Error(t, err)
@@ -104,24 +104,25 @@ output_package: "i18n"
 	t.Run("empty string paths are not resolved", func(t *testing.T) {
 		emptyConfigPath := filepath.Join(subDir, "empty_config.yaml")
 		emptyConfigContent := `locales:
-  - ja
-compound: true
+  - en
+  - fr
+compound: false
 messages: ""
 placeholders: ""
 output_dir: ""
-output_package: "i18n"
+output_package: "gen"
 `
-		require.NoError(t, os.WriteFile(emptyConfigPath, []byte(emptyConfigContent), 0644))
+		require.NoError(t, os.WriteFile(emptyConfigPath, []byte(emptyConfigContent), 0600))
 
 		config, err := LoadConfig(emptyConfigPath)
 		require.NoError(t, err)
 
 		// empty strings are preserved as-is
-		assert.Equal(t, []string{"ja"}, config.Locales)
-		assert.True(t, config.Compound)
+		assert.Equal(t, []string{"en", "fr"}, config.Locales)
+		assert.False(t, config.Compound)
 		assert.Equal(t, "", config.MessagesGlob)
 		assert.Equal(t, "", config.PlaceholdersGlob)
 		assert.Equal(t, "", config.OutputDir)
-		assert.Equal(t, "i18n", config.OutputPackage)
+		assert.Equal(t, "gen", config.OutputPackage)
 	})
 }

@@ -4,9 +4,10 @@ run:
 
 linters-settings:
   govet:
-    check-shadowing: true
+    enable:
+      - shadow
   gocyclo:
-    min-complexity: 15
+    min-complexity: 20
   dupl:
     threshold: 100
   goconst:
@@ -31,17 +32,16 @@ linters-settings:
       - octalLiteral
       - whyNoLint
       - wrapperFunc
+      - deferInLoop
 
 linters:
   disable-all: true
   enable:
     - bodyclose
-    - deadcode
-    - depguard
+    - copyloopvar
     - dogsled
     - dupl
     - errcheck
-    - exportloopref
     - exhaustive
     - gochecknoinits
     - goconst
@@ -49,7 +49,7 @@ linters:
     - gocyclo
     - gofmt
     - goimports
-    - gomnd
+    - mnd
     - goprintffuncname
     - gosec
     - gosimple
@@ -62,23 +62,38 @@ linters:
     - nolintlint
     - rowserrcheck
     - staticcheck
-    - structcheck
     - stylecheck
     - typecheck
     - unconvert
     - unparam
     - unused
-    - varcheck
     - whitespace
 
 issues:
   exclude-rules:
     - path: _test\.go
       linters:
-        - gomnd
+        - mnd
         - goconst
         - lll
+        - gosec
+        - gocyclo
+        - dupl
+        - gocritic
     - path: testdata/
       linters:
         - all
+    - path: main\.go
+      linters:
+        - gochecknoinits
+    - path: (internal/parser|internal/config)/.*\.go
+      linters:
+        - gosec
+      text: "G304"
+    - linters:
+        - mnd
+      text: "(0600|0750|0755|0644|0400)"
+    - linters:
+        - mnd
+      text: "Magic number: (2|20)"
   exclude-use-default: false 

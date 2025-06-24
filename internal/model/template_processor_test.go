@@ -1,8 +1,9 @@
 package model
 
 import (
-	"github.com/hacomono-lib/go-i18ngen/internal/templatex"
 	"testing"
+
+	"github.com/hacomono-lib/go-i18ngen/internal/templatex"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -426,10 +427,10 @@ func TestFieldInfoGenerateTemplateKey(t *testing.T) {
 		field    FieldInfo
 		expected string
 	}{
-		{"field without suffix", FieldInfo{Name: "field", Suffix: ""}, "field"},
-		{"field with suffix", FieldInfo{Name: "name", Suffix: "user"}, "nameUser"},
-		{"field with complex suffix", FieldInfo{Name: "entity", Suffix: "from_location"}, "entityFromLocation"},
-		{"field with numeric suffix", FieldInfo{Name: "value", Suffix: "2"}, "value2"},
+		{"basic field", FieldInfo{Name: "username", Suffix: ""}, "username"},
+		{"field with simple suffix", FieldInfo{Name: "title", Suffix: "admin"}, "titleAdmin"},
+		{"field with underscore suffix", FieldInfo{Name: "location", Suffix: "from_state"}, "locationFromState"},
+		{"field with number suffix", FieldInfo{Name: "counter", Suffix: "3"}, "counter3"},
 	}
 
 	for _, tt := range tests {

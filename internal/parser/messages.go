@@ -1,3 +1,4 @@
+// Package parser handles parsing of message and placeholder files for the i18n generator.
 package parser
 
 import (
@@ -11,6 +12,10 @@ import (
 	"github.com/hacomono-lib/go-i18ngen/internal/model"
 
 	"gopkg.in/yaml.v3"
+)
+
+const (
+	jsonExt = ".json"
 )
 
 // Pre-compiled regular expressions for better performance
@@ -34,7 +39,7 @@ func ParseMessages(pattern string) ([]model.MessageSource, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to open message file %q: %w", file, err)
 		}
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		ext := filepath.Ext(file)
 		data, err := decodeMessageFile(f, ext)
@@ -85,7 +90,10 @@ func validateNoDuplicatePlaceholders(template string) error {
 
 	for fieldName, count := range fieldCounts {
 		if count > 1 {
-			return fmt.Errorf("duplicate placeholder %q found (%d times) - use suffix notation to distinguish multiple instances (e.g., {{.%s:from}} and {{.%s:to}})", fieldName, count, fieldName, fieldName)
+			return fmt.Errorf(
+				"duplicate placeholder %q found (%d times) - use suffix notation "+
+					"to distinguish multiple instances (e.g., {{.%s:from}} and {{.%s:to}})",
+				fieldName, count, fieldName, fieldName)
 		}
 	}
 
@@ -214,13 +222,13 @@ func decodeMessageFile(file *os.File, ext string) (map[string]map[string]string,
 
 	// First try compound format (map[string]map[string]string)
 	var compoundData map[string]map[string]string
-	if ext == ".json" {
-		if err := json.Unmarshal(content, &compoundData); err == nil {
+	if ext == jsonExt {
+		if jsonErr := json.Unmarshal(content, &compoundData); jsonErr == nil {
 			// Return compound format as-is
 			return compoundData, nil
 		}
 	} else {
-		if err := yaml.Unmarshal(content, &compoundData); err == nil {
+		if yamlErr := yaml.Unmarshal(content, &compoundData); yamlErr == nil {
 			// Return compound format as-is
 			return compoundData, nil
 		}
@@ -228,7 +236,7 @@ func decodeMessageFile(file *os.File, ext string) (map[string]map[string]string,
 
 	// Fall back to simple format (map[string]string) and convert to compound format
 	var data map[string]string
-	if ext == ".json" {
+	if ext == jsonExt {
 		err = json.Unmarshal(content, &data)
 	} else {
 		err = yaml.Unmarshal(content, &data)

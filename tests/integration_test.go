@@ -17,7 +17,7 @@ func TestLocalizeIntegration(t *testing.T) {
 	// Create temporary directory
 	tempDir, err := os.MkdirTemp("", "i18ngen_integration_test")
 	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	// Create subdirectories
 	messagesDir := filepath.Join(tempDir, "messages")
@@ -157,7 +157,7 @@ func TestGeneratedCodeCompilation(t *testing.T) {
 	// Create temporary directory
 	tempDir, err := os.MkdirTemp("", "i18ngen_compile_test")
 	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	// Create simple messages and placeholders
 	messagesDir := filepath.Join(tempDir, "messages")

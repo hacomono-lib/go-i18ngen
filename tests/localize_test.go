@@ -21,7 +21,7 @@ func TestLocalizeActualExecution(t *testing.T) {
 	// Create temporary directory
 	tempDir, err := os.MkdirTemp("", "i18ngen_localize_test")
 	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	// Create subdirectories
 	messagesDir := filepath.Join(tempDir, "messages")
@@ -127,7 +127,7 @@ deleted:
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result := renderTemplateForTest(t, tc.locale, tc.messageID, tc.templateStr, tc.params)
+			result := renderTemplateForTest(t, tc.messageID, tc.templateStr, tc.params)
 
 			if tc.expectedExact != "" {
 				assert.Equal(t, tc.expectedExact, result, "Result does not match expected exact match")
@@ -146,7 +146,7 @@ deleted:
 }
 
 // renderTemplateForTest recreates the same implementation as the renderTemplate function in generated code for testing
-func renderTemplateForTest(t *testing.T, locale, messageID, templateStr string, params map[string]string) string {
+func renderTemplateForTest(t *testing.T, messageID, templateStr string, params map[string]string) string {
 	// Create template function map (same as generated code)
 	funcMap := template.FuncMap{
 		"title": func(s string) string {
@@ -222,7 +222,7 @@ func TestTemplateFunctionsParsing(t *testing.T) {
 			// Create actual temporary files for testing since we're directly using internal extractFields function
 			tempDir, err := os.MkdirTemp("", "template_function_test")
 			require.NoError(t, err)
-			defer os.RemoveAll(tempDir)
+			defer func() { _ = os.RemoveAll(tempDir) }()
 
 			messageFile := filepath.Join(tempDir, "test.yaml")
 			messageContent := fmt.Sprintf(`TestMessage:

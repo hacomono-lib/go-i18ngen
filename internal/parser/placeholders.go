@@ -60,7 +60,7 @@ func ParsePlaceholders(pattern string, locales []string, compound bool) ([]model
 		if err != nil {
 			return nil, fmt.Errorf("failed to open placeholder file %q: %w", file, err)
 		}
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		var parsed map[string]map[string]string
 		if compound {
@@ -103,7 +103,9 @@ func ParsePlaceholders(pattern string, locales []string, compound bool) ([]model
 		// Validate placeholder item IDs
 		for id := range items {
 			if !isValidGoIdentifier(id) {
-				return nil, fmt.Errorf("invalid placeholder item ID %q in kind %q: must be a valid Go identifier (pattern: ^[a-zA-Z_][a-zA-Z0-9_]*$)", id, kind)
+				return nil, fmt.Errorf(
+					"invalid placeholder item ID %q in kind %q: must be a valid Go identifier "+
+						"(pattern: ^[a-zA-Z_][a-zA-Z0-9_]*$)", id, kind)
 			}
 		}
 
@@ -125,7 +127,7 @@ func detectLocale(filename string) string {
 
 func decodeCompoundFile(file *os.File, ext string) (map[string]map[string]string, error) {
 	var data map[string]map[string]string
-	if ext == ".json" {
+	if ext == jsonExt {
 		err := json.NewDecoder(file).Decode(&data)
 		return data, err
 	}
@@ -135,7 +137,7 @@ func decodeCompoundFile(file *os.File, ext string) (map[string]map[string]string
 
 func decodeSimpleFile(file *os.File, ext string) (map[string]string, error) {
 	var data map[string]string
-	if ext == ".json" {
+	if ext == jsonExt {
 		err := json.NewDecoder(file).Decode(&data)
 		return data, err
 	}

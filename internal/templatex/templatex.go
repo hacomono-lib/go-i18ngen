@@ -1,3 +1,4 @@
+// Package templatex handles Go template rendering and code generation for i18n files.
 package templatex
 
 import (
@@ -65,9 +66,9 @@ type TemplateConfig struct {
 	// Future configuration options can be added here
 }
 
-func renderWithConfig(tmplContent string, data any, config *TemplateConfig) ([]byte, error) {
-	// Use basic functions for template generation
-	funcMap := template.FuncMap{
+// CreateFuncMap creates the template function map used for rendering
+func CreateFuncMap() template.FuncMap {
+	return template.FuncMap{
 		"camelCase": func(s string) string {
 			parts := strings.Split(s, "_")
 			if len(parts) == 0 {
@@ -76,20 +77,20 @@ func renderWithConfig(tmplContent string, data any, config *TemplateConfig) ([]b
 			// First part stays lowercase, subsequent parts are capitalized
 			result := parts[0]
 			for i := 1; i < len(parts); i++ {
-				if len(parts[i]) > 0 {
+				if parts[i] != "" {
 					result += strings.ToUpper(parts[i][:1]) + parts[i][1:]
 				}
 			}
 			return result
 		},
 		"title": func(s string) string {
-			if len(s) == 0 {
+			if s == "" {
 				return s
 			}
 			return strings.ToUpper(s[:1]) + s[1:]
 		},
 		"capitalize": func(s string) string {
-			if len(s) == 0 {
+			if s == "" {
 				return s
 			}
 			return strings.ToUpper(s[:1]) + s[1:]
@@ -142,6 +143,12 @@ func renderWithConfig(tmplContent string, data any, config *TemplateConfig) ([]b
 			return keys[len(keys)-1]
 		},
 	}
+}
+
+// RenderTemplateWithConfig renders a template with the given data and config
+func RenderTemplateWithConfig(tmplContent string, data any, config *TemplateConfig) ([]byte, error) {
+	// Use the shared function map
+	funcMap := CreateFuncMap()
 
 	tmpl, err := template.New("tmpl").Funcs(funcMap).Parse(tmplContent)
 	if err != nil {
@@ -149,8 +156,8 @@ func renderWithConfig(tmplContent string, data any, config *TemplateConfig) ([]b
 	}
 
 	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, data); err != nil {
-		return nil, fmt.Errorf("failed to execute Go template: %w", err)
+	if execErr := tmpl.Execute(&buf, data); execErr != nil {
+		return nil, fmt.Errorf("failed to execute Go template: %w", execErr)
 	}
 
 	formatted, err := format.Source(buf.Bytes())
@@ -161,12 +168,25 @@ func renderWithConfig(tmplContent string, data any, config *TemplateConfig) ([]b
 	return formatted, nil
 }
 
-func Render(outPath string, pkg string, primaryLocale string, messages []MessageTemplate, placeholders []PlaceholderTemplate, placeholderDefs []Placeholder, messageDefs []Message) error {
+func Render(
+	outPath, pkg, primaryLocale string,
+	messages []MessageTemplate,
+	placeholders []PlaceholderTemplate,
+	placeholderDefs []Placeholder,
+	messageDefs []Message,
+) error {
 	return RenderWithConfig(outPath, pkg, primaryLocale, messages, placeholders, placeholderDefs, messageDefs, nil)
 }
 
-func RenderWithConfig(outPath string, pkg string, primaryLocale string, messages []MessageTemplate, placeholders []PlaceholderTemplate, placeholderDefs []Placeholder, messageDefs []Message, config *TemplateConfig) error {
-	code, err := renderWithConfig(templateContent, TemplateDef{
+func RenderWithConfig(
+	outPath, pkg, primaryLocale string,
+	messages []MessageTemplate,
+	placeholders []PlaceholderTemplate,
+	placeholderDefs []Placeholder,
+	messageDefs []Message,
+	config *TemplateConfig,
+) error {
+	code, err := RenderTemplateWithConfig(templateContent, TemplateDef{
 		PackageName:     pkg,
 		PrimaryLocale:   primaryLocale,
 		Messages:        messages,
@@ -178,7 +198,7 @@ func RenderWithConfig(outPath string, pkg string, primaryLocale string, messages
 		return err // Already wrapped with detailed context
 	}
 
-	if err := os.WriteFile(outPath, code, 0644); err != nil {
+	if err := os.WriteFile(outPath, code, 0600); err != nil {
 		return fmt.Errorf("failed to write generated code to file %q: %w", outPath, err)
 	}
 

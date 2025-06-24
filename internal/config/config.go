@@ -1,3 +1,4 @@
+// Package config handles configuration loading and management for the i18n code generator.
 package config
 
 import (

@@ -3,7 +3,6 @@ package templatex
 import (
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"testing"
 	"text/template"
@@ -29,7 +28,7 @@ func (s *TemplatexTestSuite) SetupTest() {
 }
 
 func (s *TemplatexTestSuite) TearDownTest() {
-	os.RemoveAll(s.tempDir)
+	_ = os.RemoveAll(s.tempDir)
 }
 
 func (s *TemplatexTestSuite) TestRender_Success() {
@@ -322,84 +321,15 @@ func TestTemplateFunctions_SortingFunctions(t *testing.T) {
 	})
 }
 
+// createTestFuncMap returns the actual production function map for testing
+func createTestFuncMap() template.FuncMap {
+	return CreateFuncMap()
+}
+
 // Helper function to execute template without Go code formatting
 func executeTemplateDirectly(tmplContent string, data interface{}) (string, error) {
-	// Use basic functions for template generation
-	funcMap := template.FuncMap{
-		"camelCase": func(s string) string {
-			parts := strings.Split(s, "_")
-			if len(parts) == 0 {
-				return s
-			}
-			// First part stays lowercase, subsequent parts are capitalized
-			result := parts[0]
-			for i := 1; i < len(parts); i++ {
-				if len(parts[i]) > 0 {
-					result += strings.ToUpper(parts[i][:1]) + parts[i][1:]
-				}
-			}
-			return result
-		},
-		"title": func(s string) string {
-			if len(s) == 0 {
-				return s
-			}
-			return strings.ToUpper(s[:1]) + s[1:]
-		},
-		"capitalize": func(s string) string {
-			if len(s) == 0 {
-				return s
-			}
-			return strings.ToUpper(s[:1]) + s[1:]
-		},
-		"commentSafe": func(s string) string {
-			// properly format multi-line strings as comments
-			lines := strings.Split(s, "\n")
-			if len(lines) <= 1 {
-				return s
-			}
-
-			// for multi-line cases, convert newlines to proper comment format
-			var result []string
-			for i, line := range lines {
-				trimmed := strings.TrimRight(line, "\r")
-				if i == 0 {
-					result = append(result, trimmed)
-				} else {
-					// add proper indentation and comment prefix for subsequent lines
-					result = append(result, "//         "+trimmed)
-				}
-			}
-			return strings.Join(result, "\n")
-		},
-		"sortLocales": func(templates map[string]string) []string {
-			var locales []string
-			for locale := range templates {
-				locales = append(locales, locale)
-			}
-			sort.Strings(locales)
-			return locales
-		},
-		"sortMapKeys": func(m map[string]map[string]string) []string {
-			var keys []string
-			for key := range m {
-				keys = append(keys, key)
-			}
-			sort.Strings(keys)
-			return keys
-		},
-		"lastKey": func(m map[string]string) string {
-			var keys []string
-			for key := range m {
-				keys = append(keys, key)
-			}
-			if len(keys) == 0 {
-				return ""
-			}
-			sort.Strings(keys)
-			return keys[len(keys)-1]
-		},
-	}
+	// Create a simplified function map for testing
+	funcMap := createTestFuncMap()
 
 	tmpl, err := template.New("test").Funcs(funcMap).Parse(tmplContent)
 	if err != nil {
@@ -418,7 +348,7 @@ func TestRenderWithConfig_InvalidTemplate(t *testing.T) {
 	// Test with invalid template syntax
 	invalidTemplate := "{{.invalid syntax"
 
-	_, err := renderWithConfig(invalidTemplate, map[string]string{}, nil)
+	_, err := RenderTemplateWithConfig(invalidTemplate, map[string]string{}, nil)
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to parse Go template")
@@ -428,7 +358,7 @@ func TestRenderWithConfig_InvalidGoCode(t *testing.T) {
 	// Test with template that generates invalid Go code
 	invalidGoTemplate := "package invalid\nfunc { invalid syntax }"
 
-	_, err := renderWithConfig(invalidGoTemplate, map[string]string{}, nil)
+	_, err := RenderTemplateWithConfig(invalidGoTemplate, map[string]string{}, nil)
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to format generated Go code")
