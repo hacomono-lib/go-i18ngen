@@ -2,9 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop ]
   pull_request:
-    branches: [ main, develop ]
 
 jobs:
   test:
@@ -121,10 +119,9 @@ jobs:
         go-version: '1.23'
     
     - name: Run golangci-lint
-      uses: golangci/golangci-lint-action@v6
+      uses: reviewdog/action-golangci-lint@v2
       with:
-        version: latest
-        args: --timeout=5m
+        golangci_lint_flags: "--timeout=5m"
 
   security:
     name: Security Scan
