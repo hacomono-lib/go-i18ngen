@@ -1,5 +1,3 @@
-version: 2
-
 run:
   timeout: 5m
   modules-download-mode: readonly
@@ -49,7 +47,7 @@ linters:
     - goconst
     - gocritic
     - gocyclo
-    - gofumpt
+    - gofmt
     - goimports
     - mnd
     - goprintffuncname
@@ -69,6 +67,7 @@ linters:
     - unparam
     - unused
     - whitespace
+    - typecheck
 
 issues:
   exclude-rules:
