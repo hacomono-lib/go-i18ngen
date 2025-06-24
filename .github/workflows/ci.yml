@@ -77,6 +77,7 @@ jobs:
         file: ./coverage.out
         flags: unittests
         name: codecov-umbrella
+        fail_ci_if_error: false
     
     - name: Archive coverage reports
       uses: actions/upload-artifact@v4
@@ -101,10 +102,10 @@ jobs:
         go-version: '1.23'
     
     - name: Build binary
-      run: go build -v -o i18ngen ./cmd/i18ngen
+      run: go build -v -o go-i18ngen .
     
     - name: Test binary
-      run: ./i18ngen --help
+      run: ./go-i18ngen --help
 
   lint:
     name: Lint

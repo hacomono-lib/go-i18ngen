@@ -4,6 +4,11 @@ on:
   pull_request:
     branches: [ main, develop ]
 
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
 jobs:
   coverage-comment:
     name: Coverage Comment
@@ -38,6 +43,7 @@ jobs:
     - name: Create coverage comment
       uses: actions/github-script@v7
       with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
           const fs = require('fs');
           const coverage = '${{ steps.coverage.outputs.coverage }}';
@@ -81,33 +87,41 @@ jobs:
           
           </details>`;
           
-          // Find existing coverage comment
-          const { data: comments } = await github.rest.issues.listComments({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            issue_number: context.issue.number,
-          });
-          
-          const existingComment = comments.find(comment => 
-            comment.body.includes('📊 Code Coverage Report')
-          );
-          
-          if (existingComment) {
-            // Update existing comment
-            await github.rest.issues.updateComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              comment_id: existingComment.id,
-              body: commentBody
-            });
-          } else {
-            // Create new comment
-            await github.rest.issues.createComment({
+          try {
+            // Find existing coverage comment
+            const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: commentBody
             });
+            
+            const existingComment = comments.find(comment => 
+              comment.body.includes('📊 Code Coverage Report')
+            );
+            
+            if (existingComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body: commentBody
+              });
+              console.log('Coverage comment updated successfully');
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: commentBody
+              });
+              console.log('Coverage comment created successfully');
+            }
+          } catch (error) {
+            console.error('Error creating/updating coverage comment:', error);
+            console.log('This might be due to insufficient permissions for forked PRs');
+            // Don't fail the workflow if comment creation fails
           }
     
     - name: Upload coverage artifacts
