@@ -49,7 +49,7 @@ linters:
     - goconst
     - gocritic
     - gocyclo
-    - gofmt
+    - gofumpt
     - goimports
     - mnd
     - goprintffuncname
