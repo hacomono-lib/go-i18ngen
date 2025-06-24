@@ -1,0 +1,34 @@
+EntityNotFound:
+  ja: "{{.entity}}が見つかりません: {{.reason}}"
+  en: "{{.entity}} not found: {{.reason}}"
+UserAlreadyExists:
+  ja: "{{.entity}}はすでに存在します: {{.user_id}}"
+  en: "{{.entity}} already exists: {{.user_id}}"
+400BadRequest:
+  ja: "不正なリクエストです: {{.reason}}"
+  en: "Bad request: {{.reason}}"
+WelcomeMessage:
+  ja: "{{.name:user}}さん、{{.name:owner}}さんのアカウントへようこそ！"
+  en: "Welcome {{.name:user}}, to {{.name:owner}}'s account!"
+ValidationError:
+  ja: "{{.field:input}}の{{.field:display | upper}}検証エラーです"
+  en: "{{.field:input | title}} validation error for {{.field:display}}"
+# Suffix notation example
+TransferMessage:
+  ja: "{{.entity:from}}から{{.entity:to}}へ移動しました"
+  en: "Moved from {{.entity:from}} to {{.entity:to}}"
+UserWelcome:
+  ja: "{{.name:user}}さん、{{.name:admin}}によって承認されました"
+  en: "{{.name:user}}, approved by {{.name:admin}}"
+# Correct transfer example with suffix notation
+CorrectTransfer:
+  ja: "{{.user:from}}から{{.user:to}}への転送"
+  en: "Transfer from {{.user:from}} to {{.user:to}}"
+
+
+
+
+
+
+
+

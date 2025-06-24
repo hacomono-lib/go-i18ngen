@@ -1,0 +1,2 @@
+# This file ensures the testdata/out directory is preserved in git
+# while ignoring the generated files within it

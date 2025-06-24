@@ -1,0 +1,8 @@
+compound: true
+locales:
+  - ja
+  - en
+messages: "./messages/*.yaml"
+placeholders: "./placeholders/*.yaml"
+output_dir: "./"
+output_package: i18n
