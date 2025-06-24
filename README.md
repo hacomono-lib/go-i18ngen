@@ -123,7 +123,7 @@ member:
   en: "member"
 
 # messages/messages.yaml
-CMN_000004:
+CMN_000001:
   ja: "データが見つかりません。[{{.entity}}]"
   en: "Data not found.[{{.entity | title}}]"
 ```
@@ -132,7 +132,7 @@ The generated code will produce:
 
 ```go
 memberEntity := NewEntityText("member")
-msg := NewCMN000004(memberEntity)
+msg := NewCMN000001(memberEntity)
 
 fmt.Println(msg.Localize("ja")) // "データが見つかりません。[会員]"
 fmt.Println(msg.Localize("en")) // "Data not found.[Member]"  // ← Capitalized by title function
