@@ -1,0 +1,120 @@
+name: Coverage Comment
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  coverage-comment:
+    name: Coverage Comment
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+    
+    - name: Run tests with coverage
+      run: go test -v -race -coverprofile=coverage.out ./...
+    
+    - name: Generate coverage report
+      run: |
+        go tool cover -html=coverage.out -o coverage.html
+        go tool cover -func=coverage.out > coverage.txt
+    
+    - name: Calculate coverage metrics
+      id: coverage
+      run: |
+        COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+        LINES_COVERED=$(go tool cover -func=coverage.out | grep total | awk '{print $2}')
+        echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
+        echo "lines_covered=$LINES_COVERED" >> $GITHUB_OUTPUT
+    
+    - name: Create coverage comment
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const coverage = '${{ steps.coverage.outputs.coverage }}';
+          const linesCovered = '${{ steps.coverage.outputs.lines_covered }}';
+          
+          // Read coverage details
+          const coverageDetails = fs.readFileSync('coverage.txt', 'utf8');
+          
+          // Create coverage badge color
+          const badgeColor = coverage >= 80 ? 'brightgreen' : coverage >= 60 ? 'yellow' : 'red';
+          
+          // Generate comment body
+          const commentBody = `## 📊 Code Coverage Report
+          
+          ![Coverage](https://img.shields.io/badge/Coverage-${coverage}%25-${badgeColor})
+          
+          **Overall Coverage:** ${coverage}%
+          **Lines Covered:** ${linesCovered}
+          
+          ### 📋 Coverage by Package
+          
+          \`\`\`
+          ${coverageDetails}
+          \`\`\`
+          
+          ### 🎯 Coverage Guidelines
+          
+          - ✅ **Good:** ≥80%
+          - ⚠️ **Acceptable:** 60-79%
+          - ❌ **Needs Improvement:** <60%
+          
+          ---
+          
+          <details>
+          <summary>💡 How to improve coverage</summary>
+          
+          1. Add unit tests for uncovered functions
+          2. Test error handling paths
+          3. Add integration tests for complex scenarios
+          4. Use \`go test -cover\` locally to identify gaps
+          
+          </details>`;
+          
+          // Find existing coverage comment
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+          
+          const existingComment = comments.find(comment => 
+            comment.body.includes('📊 Code Coverage Report')
+          );
+          
+          if (existingComment) {
+            // Update existing comment
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: existingComment.id,
+              body: commentBody
+            });
+          } else {
+            // Create new comment
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: commentBody
+            });
+          }
+    
+    - name: Upload coverage artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: |
+          coverage.out
+          coverage.html
+          coverage.txt 

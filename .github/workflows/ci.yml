@@ -45,12 +45,46 @@ jobs:
     - name: Run tests
       run: go test -v -race -coverprofile=coverage.out ./...
     
+    - name: Generate coverage report
+      run: go tool cover -html=coverage.out -o coverage.html
+    
+    - name: Calculate coverage percentage
+      id: coverage
+      run: |
+        COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+        echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
+        echo "Coverage: $COVERAGE%"
+    
+    - name: Coverage Summary
+      run: |
+        echo "## 📊 Test Coverage Report" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Overall Coverage: ${{ steps.coverage.outputs.coverage }}%**" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Coverage by Package:" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        go tool cover -func=coverage.out | head -n -1 >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Coverage Details:" >> $GITHUB_STEP_SUMMARY
+        echo "- **Lines covered:** $(go tool cover -func=coverage.out | grep total | awk '{print $2}')" >> $GITHUB_STEP_SUMMARY
+        echo "- **Go version:** ${{ matrix.go-version }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **OS:** ${{ runner.os }}" >> $GITHUB_STEP_SUMMARY
+    
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
       with:
         file: ./coverage.out
         flags: unittests
         name: codecov-umbrella
+    
+    - name: Archive coverage reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report-go${{ matrix.go-version }}
+        path: |
+          coverage.out
+          coverage.html
 
   build:
     name: Build Binary

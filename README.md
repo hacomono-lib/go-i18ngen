@@ -1,5 +1,9 @@
 # i18ngen - Type-Safe Internationalization Code Generator
 
+[![CI](https://github.com/hacomono-lib/go-i18ngen/workflows/CI/badge.svg)](https://github.com/hacomono-lib/go-i18ngen/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Go 1.21+](https://img.shields.io/badge/Go-1.21+-00ADD8?logo=go)](https://golang.org/)
+
 i18ngen is a CLI tool that automatically generates type-safe Go code for internationalization (i18n) from YAML configuration files. It creates strongly-typed structs and functions that ensure compile-time safety for localized messages and placeholders.
 
 ## Features

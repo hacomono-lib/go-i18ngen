@@ -58,6 +58,33 @@ coverage: test ## Generate coverage report
 	$(GOCMD) tool cover -html=coverage.out -o coverage.html
 	@echo "Coverage report generated: coverage.html"
 
+.PHONY: coverage-show
+coverage-show: test ## Show coverage in terminal
+	$(GOCMD) tool cover -func=coverage.out
+
+.PHONY: coverage-detail
+coverage-detail: test ## Show detailed coverage report
+	@echo "=== COVERAGE SUMMARY ==="
+	@$(GOCMD) tool cover -func=coverage.out | tail -1
+	@echo ""
+	@echo "=== COVERAGE BY PACKAGE ==="
+	@$(GOCMD) tool cover -func=coverage.out | grep -v "total:"
+	@echo ""
+	@echo "=== COVERAGE REPORT ==="
+	@echo "HTML report: coverage.html"
+	@echo "Raw data: coverage.out"
+
+.PHONY: coverage-check
+coverage-check: test ## Check if coverage meets minimum threshold (80%)
+	@COVERAGE=$$($(GOCMD) tool cover -func=coverage.out | grep total | awk '{print $$3}' | sed 's/%//'); \
+	echo "Current coverage: $$COVERAGE%"; \
+	if [ $$(echo "$$COVERAGE >= 80" | bc -l) -eq 1 ]; then \
+		echo "✅ Coverage meets minimum threshold (80%)"; \
+	else \
+		echo "❌ Coverage below minimum threshold (80%)"; \
+		exit 1; \
+	fi
+
 .PHONY: bench
 bench: ## Run benchmarks
 	$(GOTEST) -bench=. -benchmem ./...
