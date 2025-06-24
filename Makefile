@@ -10,7 +10,7 @@ GOLINT=golangci-lint
 
 # Binary info
 BINARY_NAME=i18ngen
-BINARY_PATH=./cmd/$(BINARY_NAME)
+BINARY_PATH=.
 BUILD_DIR=./build
 
 # Build info
@@ -69,15 +69,15 @@ build: ## Build binary
 .PHONY: build-all
 build-all: ## Build for all platforms
 	@mkdir -p $(BUILD_DIR)
-	GOOS=linux GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-amd64 $(BINARY_PATH)
-	GOOS=linux GOARCH=arm64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-arm64 $(BINARY_PATH)
-	GOOS=darwin GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-amd64 $(BINARY_PATH)
-	GOOS=darwin GOARCH=arm64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-arm64 $(BINARY_PATH)
-	GOOS=windows GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-windows-amd64.exe $(BINARY_PATH)
+	GOOS=linux GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-amd64 .
+	GOOS=linux GOARCH=arm64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-arm64 .
+	GOOS=darwin GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-amd64 .
+	GOOS=darwin GOARCH=arm64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-arm64 .
+	GOOS=windows GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-windows-amd64.exe .
 
 .PHONY: install
 install: ## Install binary to GOPATH/bin
-	$(GOCMD) install $(LDFLAGS) $(BINARY_PATH)
+	$(GOCMD) install $(LDFLAGS) .
 
 .PHONY: clean
 clean: ## Clean build artifacts
@@ -87,7 +87,7 @@ clean: ## Clean build artifacts
 
 .PHONY: run
 run: ## Run the application with example config
-	$(GOCMD) run $(BINARY_PATH) --help
+	$(GOCMD) run . --help
 
 .PHONY: dev-setup
 dev-setup: deps ## Setup development environment

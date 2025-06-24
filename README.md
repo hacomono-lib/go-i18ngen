@@ -17,7 +17,7 @@ i18ngen is a CLI tool that automatically generates type-safe Go code for interna
 ## Installation
 
 ```bash
-go install github.com/hacomono-lib/go-i18ngen/cmd/i18ngen@latest
+go install github.com/hacomono-lib/go-i18ngen@latest
 ```
 
 ## Quick Start
@@ -445,10 +445,10 @@ go mod tidy
 go test -v -race ./...
 
 # Build
-go build -o build/i18ngen ./cmd/i18ngen
+go build -o build/i18ngen .
 
 # Install locally
-go install ./cmd/i18ngen
+go install .
 ```
 
 ### Available Make Targets
@@ -548,22 +548,23 @@ docker run --rm -v $(pwd):/app -w /app golang:1.23 go test ./...
 
 ```
 go-i18ngen/
-├── cmd/i18ngen/          # CLI application
-├── internal/             # Internal packages
-│   ├── cmd/             # CLI commands
-│   ├── config/          # Configuration handling
-│   ├── generator/       # Code generation logic
-│   ├── model/           # Data models
-│   ├── parser/          # File parsing
-│   ├── templatex/       # Template rendering
-│   └── utils/           # Utility functions
-├── testdata/            # Test data and examples
-├── .github/             # GitHub Actions CI/CD
-├── Dockerfile           # Production Docker image
-├── Dockerfile.dev       # Development Docker image
-├── docker-compose.yml   # Development environment
-├── Makefile            # Development commands
-└── .golangci.yml       # Linter configuration
+├── main.go             # CLI application entry point
+├── internal/           # Internal packages (unit tests are *_test.go files within each package)
+│   ├── cmd/           # CLI commands
+│   ├── config/        # Configuration handling
+│   ├── generator/     # Code generation logic
+│   ├── model/         # Data models
+│   ├── parser/        # File parsing
+│   ├── templatex/     # Template rendering
+│   └── utils/         # Utility functions
+├── tests/             # Integration tests
+├── testdata/          # Test data and examples
+├── .github/           # GitHub Actions CI/CD
+├── Dockerfile         # Production Docker image
+├── Dockerfile.dev     # Development Docker image
+├── docker-compose.yml # Development environment
+├── Makefile          # Development commands
+└── .golangci.yml     # Linter configuration
 ```
 
 ### Release Process
@@ -591,7 +592,7 @@ make install
 #### Using Go Install (Recommended)
 
 ```bash
-go install github.com/hacomono-lib/go-i18ngen/cmd/i18ngen@latest
+go install github.com/hacomono-lib/go-i18ngen@latest
 ```
 
 #### Using Docker

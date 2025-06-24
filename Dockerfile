@@ -15,7 +15,7 @@ RUN go mod download
 COPY . .
 
 # Build the binary
-RUN make build
+RUN go build -o build/i18ngen .
 
 # Runtime stage
 FROM alpine:latest
