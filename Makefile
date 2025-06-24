@@ -9,7 +9,7 @@ GOFMT=gofmt
 GOLINT=golangci-lint
 
 # Binary info
-BINARY_NAME=i18ngen
+BINARY_NAME=go-i18ngen
 BINARY_PATH=.
 BUILD_DIR=./build
 
