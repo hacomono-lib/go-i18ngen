@@ -12,8 +12,8 @@ import (
 )
 
 func TestMergeConfig(t *testing.T) {
-	t.Run("コマンド引数がconfig.yamlより優先される", func(t *testing.T) {
-		// config.yamlの設定
+	t.Run("command line arguments override config.yaml values", func(t *testing.T) {
+		// config.yaml settings
 		cfg := &config.Config{
 			Locales:          []string{"ja"},
 			Compound:         false,
@@ -23,7 +23,7 @@ func TestMergeConfig(t *testing.T) {
 			OutputPackage:    "config_pkg",
 		}
 
-		// コマンド引数のフラグ
+		// command line flags
 		flags := &Flags{
 			Locales:          []string{"ja", "en"},
 			Compound:         true,
@@ -35,7 +35,7 @@ func TestMergeConfig(t *testing.T) {
 
 		merged := MergeConfig(cfg, flags)
 
-		// コマンド引数の値が優先されることを確認
+		// verify that command line argument values take precedence
 		assert.Equal(t, []string{"ja", "en"}, merged.Locales)
 		assert.True(t, merged.Compound)
 		assert.Equal(t, "/cmd/messages/*.json", merged.MessagesGlob)
@@ -44,8 +44,8 @@ func TestMergeConfig(t *testing.T) {
 		assert.Equal(t, "cmd_pkg", merged.OutputPackage)
 	})
 
-	t.Run("コマンド引数が空の場合はconfig.yamlの値を使用", func(t *testing.T) {
-		// config.yamlの設定
+	t.Run("uses config.yaml values when command line arguments are empty", func(t *testing.T) {
+		// config.yaml settings
 		cfg := &config.Config{
 			Locales:          []string{"ja"},
 			Compound:         true,
@@ -55,12 +55,12 @@ func TestMergeConfig(t *testing.T) {
 			OutputPackage:    "config_pkg",
 		}
 
-		// 空のコマンド引数フラグ
+		// empty command line flags
 		flags := &Flags{}
 
 		merged := MergeConfig(cfg, flags)
 
-		// config.yamlの値がそのまま使用されることを確認
+		// verify that config.yaml values are used as-is
 		assert.Equal(t, []string{"ja"}, merged.Locales)
 		assert.True(t, merged.Compound)
 		assert.Equal(t, "/config/messages/*.json", merged.MessagesGlob)
@@ -69,8 +69,8 @@ func TestMergeConfig(t *testing.T) {
 		assert.Equal(t, "config_pkg", merged.OutputPackage)
 	})
 
-	t.Run("部分的なコマンド引数の上書き", func(t *testing.T) {
-		// config.yamlの設定
+	t.Run("partial command line argument override", func(t *testing.T) {
+		// config.yaml settings
 		cfg := &config.Config{
 			Locales:          []string{"ja"},
 			Compound:         false,
@@ -80,7 +80,7 @@ func TestMergeConfig(t *testing.T) {
 			OutputPackage:    "config_pkg",
 		}
 
-		// 一部のコマンド引数のみ指定
+		// specify only some command line arguments
 		flags := &Flags{
 			MessagesGlob: "/cmd/messages/*.json",
 			OutputDir:    "/cmd/output",
@@ -88,28 +88,28 @@ func TestMergeConfig(t *testing.T) {
 
 		merged := MergeConfig(cfg, flags)
 
-		// 指定されたコマンド引数のみ上書きされ、その他はconfig.yamlの値を使用
-		assert.Equal(t, []string{"ja"}, merged.Locales)                         // config.yamlの値
-		assert.False(t, merged.Compound)                                        // config.yamlの値
-		assert.Equal(t, "/cmd/messages/*.json", merged.MessagesGlob)            // コマンド引数で上書き
-		assert.Equal(t, "/config/placeholders/*.yaml", merged.PlaceholdersGlob) // config.yamlの値
-		assert.Equal(t, "/cmd/output", merged.OutputDir)                        // コマンド引数で上書き
-		assert.Equal(t, "config_pkg", merged.OutputPackage)                     // config.yamlの値
+		// only specified command line arguments are overridden, others use config.yaml values
+		assert.Equal(t, []string{"ja"}, merged.Locales)                         // config.yaml value
+		assert.False(t, merged.Compound)                                        // config.yaml value
+		assert.Equal(t, "/cmd/messages/*.json", merged.MessagesGlob)            // overridden by command line
+		assert.Equal(t, "/config/placeholders/*.yaml", merged.PlaceholdersGlob) // config.yaml value
+		assert.Equal(t, "/cmd/output", merged.OutputDir)                        // overridden by command line
+		assert.Equal(t, "config_pkg", merged.OutputPackage)                     // config.yaml value
 	})
 }
 
 func TestPathResolutionBehavior(t *testing.T) {
-	// 一時ディレクトリを作成
+	// create temporary directory
 	tempDir, err := os.MkdirTemp("", "i18ngen_path_test")
 	require.NoError(t, err)
 	defer os.RemoveAll(tempDir)
 
-	// サブディレクトリを作成
+	// create subdirectory
 	configDir := filepath.Join(tempDir, "config")
 	require.NoError(t, os.MkdirAll(configDir, 0755))
 
-	t.Run("config.yamlファイル内のパスは設定ファイルからの相対パス", func(t *testing.T) {
-		// config.yamlファイルを作成
+	t.Run("paths in config.yaml are relative to config file directory", func(t *testing.T) {
+		// create config.yaml file
 		configPath := filepath.Join(configDir, "test_config.yaml")
 		configContent := `messages: "messages/*.json"
 placeholders: "placeholders/*.yaml"
@@ -117,11 +117,11 @@ output_dir: "output"
 `
 		require.NoError(t, os.WriteFile(configPath, []byte(configContent), 0644))
 
-		// config.yamlを読み込み
+		// load config.yaml
 		cfg, err := config.LoadConfig(configPath)
 		require.NoError(t, err)
 
-		// パスが設定ファイルのディレクトリを基準に解決されることを確認
+		// verify that paths are resolved relative to the config file directory
 		expectedMessagesGlob := filepath.Join(configDir, "messages/*.json")
 		expectedPlaceholdersGlob := filepath.Join(configDir, "placeholders/*.yaml")
 		expectedOutputDir := filepath.Join(configDir, "output")
@@ -131,26 +131,26 @@ output_dir: "output"
 		assert.Equal(t, expectedOutputDir, cfg.OutputDir)
 	})
 
-	t.Run("コマンド引数のパスはそのまま使用される（実行ディレクトリからの相対パス）", func(t *testing.T) {
-		// 空のconfig.yamlを作成
+	t.Run("command line paths are used as-is (relative to execution directory)", func(t *testing.T) {
+		// create empty config.yaml
 		configPath := filepath.Join(configDir, "empty_config.yaml")
 		configContent := `locales: ["ja"]`
 		require.NoError(t, os.WriteFile(configPath, []byte(configContent), 0644))
 
-		// config.yamlを読み込み
+		// load config.yaml
 		cfg, err := config.LoadConfig(configPath)
 		require.NoError(t, err)
 
-		// コマンド引数のフラグ（実行ディレクトリからの相対パス）
+		// command line flags (relative to execution directory)
 		flags := &Flags{
-			MessagesGlob:     "cmd_messages/*.json",     // 実行ディレクトリから
-			PlaceholdersGlob: "cmd_placeholders/*.yaml", // 実行ディレクトリから
-			OutputDir:        "cmd_output",              // 実行ディレクトリから
+			MessagesGlob:     "cmd_messages/*.json",     // from execution directory
+			PlaceholdersGlob: "cmd_placeholders/*.yaml", // from execution directory
+			OutputDir:        "cmd_output",              // from execution directory
 		}
 
 		merged := MergeConfig(cfg, flags)
 
-		// コマンド引数のパスはそのまま使用される（パス解決されない）
+		// command line paths are used as-is (no path resolution)
 		assert.Equal(t, "cmd_messages/*.json", merged.MessagesGlob)
 		assert.Equal(t, "cmd_placeholders/*.yaml", merged.PlaceholdersGlob)
 		assert.Equal(t, "cmd_output", merged.OutputDir)

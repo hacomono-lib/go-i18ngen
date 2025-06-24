@@ -231,7 +231,7 @@ func TestTemplateFunctionsParsing(t *testing.T) {
 `, tc.template, tc.template)
 			require.NoError(t, os.WriteFile(messageFile, []byte(messageContent), 0644))
 
-			// パーサーを使用してフィールドを抽出
+			// use parser to extract fields
 			messagesDir := filepath.Join(tempDir, "messages")
 			placeholdersDir := filepath.Join(tempDir, "placeholders")
 			outputDir := filepath.Join(tempDir, "output")
@@ -257,18 +257,18 @@ func TestTemplateFunctionsParsing(t *testing.T) {
 			err = generator.Run(cfg)
 			require.NoError(t, err)
 
-			// 生成されたコードを確認
+			// verify the generated code
 			generatedFile := filepath.Join(outputDir, "i18n.gen.go")
 			generatedCode, err := os.ReadFile(generatedFile)
 			require.NoError(t, err)
 			codeStr := string(generatedCode)
 
-			// TestMessage構造体の定義を確認
+			// check TestMessage struct definition
 			structStart := strings.Index(codeStr, "type TestMessage struct")
-			require.Greater(t, structStart, -1, "TestMessage構造体が見つかりません")
+			require.Greater(t, structStart, -1, "TestMessage struct not found")
 
 			structEnd := strings.Index(codeStr[structStart:], "}")
-			require.Greater(t, structEnd, -1, "TestMessage構造体の終了が見つかりません")
+			require.Greater(t, structEnd, -1, "TestMessage struct end not found")
 
 			structDef := codeStr[structStart : structStart+structEnd]
 

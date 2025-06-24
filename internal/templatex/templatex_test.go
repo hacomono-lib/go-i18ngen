@@ -353,20 +353,20 @@ func executeTemplateDirectly(tmplContent string, data interface{}) (string, erro
 			return strings.ToUpper(s[:1]) + s[1:]
 		},
 		"commentSafe": func(s string) string {
-			// 複数行の文字列を適切にコメント化
+			// properly format multi-line strings as comments
 			lines := strings.Split(s, "\n")
 			if len(lines) <= 1 {
 				return s
 			}
 
-			// 複数行の場合は改行文字を適切にコメント形式に変換
+			// for multi-line cases, convert newlines to proper comment format
 			var result []string
 			for i, line := range lines {
 				trimmed := strings.TrimRight(line, "\r")
 				if i == 0 {
 					result = append(result, trimmed)
 				} else {
-					// 2行目以降は適切なインデントとコメントプレフィックスを追加
+					// add proper indentation and comment prefix for subsequent lines
 					result = append(result, "//         "+trimmed)
 				}
 			}
