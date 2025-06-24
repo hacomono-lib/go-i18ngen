@@ -62,7 +62,7 @@ product:
 4. Generate type-safe Go code:
 
 ```bash
-i18ngen generate --config config.yaml
+go-i18ngen generate --config config.yaml
 ```
 
 5. Use the generated code:
@@ -317,7 +317,7 @@ Files must follow `name.locale.ext` pattern.
 ## CLI Usage
 
 ```bash
-i18ngen generate [flags]
+go-i18ngen generate [flags]
 ```
 
 ### Flags
@@ -399,7 +399,7 @@ The tool is designed to integrate seamlessly with existing Go projects:
 Add to your Go file for automatic generation:
 
 ```go
-//go:generate i18ngen generate --config config.yaml
+//go:generate go-i18ngen generate --config config.yaml
 ```
 
 ## Limitations
@@ -494,7 +494,7 @@ docker-compose run lint
 make docker-build
 
 # Run the built image
-docker run --rm i18ngen:latest --help
+docker run --rm go-i18ngen:latest --help
 
 # Development with volume mount
 docker run --rm -v $(pwd):/workspace -w /workspace golang:1.23 make test
