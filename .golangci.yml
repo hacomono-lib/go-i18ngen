@@ -63,11 +63,11 @@ linters:
     - rowserrcheck
     - staticcheck
     - stylecheck
-    - typecheck
     - unconvert
     - unparam
     - unused
     - whitespace
+    - typecheck
 
 issues:
   exclude-rules:
