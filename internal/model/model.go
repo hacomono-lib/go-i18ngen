@@ -122,6 +122,10 @@ func Build(messages []MessageSource, placeholders []PlaceholderSource, locales [
 				if textJ == "" {
 					textJ = items[j].ID
 				}
+				// If localized texts are equal, use ID as secondary sort key for stable ordering
+				if textI == textJ {
+					return items[i].ID < items[j].ID
+				}
 				return textI < textJ
 			})
 		}
