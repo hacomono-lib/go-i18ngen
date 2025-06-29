@@ -47,9 +47,10 @@ func (f FieldInfo) GenerateTemplateKey() string {
 }
 
 type MessageSource struct {
-	ID         string
-	Templates  map[string]string // locale -> template
-	FieldInfos []FieldInfo       // Enhanced field information with suffix support
+	ID           string
+	Templates    map[string]string      // locale -> template (simplified for processing)
+	RawTemplates map[string]interface{} // locale -> raw template data (preserves plural forms)
+	FieldInfos   []FieldInfo            // Enhanced field information with suffix support
 }
 
 type PlaceholderSource struct {
@@ -219,6 +220,7 @@ func Build(messages []MessageSource, placeholders []PlaceholderSource, locales [
 			StructName:    structName,
 			Fields:        fields,
 			Templates:     processedTemplates,
+			RawTemplates:  msg.RawTemplates,
 			SupportsCount: supportsCount,
 		})
 	}

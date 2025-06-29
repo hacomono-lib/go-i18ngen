@@ -24,7 +24,8 @@ type Message struct {
 	ID            string
 	StructName    string
 	Fields        []Field
-	Templates     map[string]string // locale -> template
+	Templates     map[string]string      // locale -> template (simplified for processing)
+	RawTemplates  map[string]interface{} // locale -> raw template data (preserves plural forms)
 	SupportsCount bool
 }
 
@@ -150,6 +151,44 @@ func CreateFuncMap() template.FuncMap {
 			}
 			sort.Strings(keys)
 			return keys[len(keys)-1]
+		},
+		"formatPluralTemplate": func(template interface{}) string {
+			switch t := template.(type) {
+			case string:
+				return fmt.Sprintf("\"%s\"", t)
+			case map[string]interface{}:
+				if len(t) <= 1 {
+					// Single form, keep it inline
+					for form, text := range t {
+						return fmt.Sprintf("{%s: \"%s\"}", form, text)
+					}
+				}
+				// Multiple forms, format with newlines for readability
+				var parts []string
+				for form, text := range t {
+					parts = append(parts, fmt.Sprintf("//       %s: \"%s\"", form, text))
+				}
+				sort.Strings(parts) // Sort for consistent output
+				if len(parts) > 1 {
+					return "{\n" + strings.Join(parts, ",\n") + "\n//     }"
+				}
+				return "{" + strings.Join(parts, ", ") + "}"
+			case map[interface{}]interface{}:
+				// Handle YAML-parsed maps with interface{} keys
+				var parts []string
+				for key, text := range t {
+					if keyStr, ok := key.(string); ok {
+						parts = append(parts, fmt.Sprintf("//       %s: \"%s\"", keyStr, text))
+					}
+				}
+				sort.Strings(parts)
+				if len(parts) > 1 {
+					return "{\n" + strings.Join(parts, ",\n") + "\n//     }"
+				}
+				return "{" + strings.Join(parts, ", ") + "}"
+			default:
+				return fmt.Sprintf("\"%v\"", t)
+			}
 		},
 		"safeIdent": utils.SafeGoIdentifier,
 	}
