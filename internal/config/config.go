@@ -12,14 +12,13 @@ import (
 
 // Config holds configuration for i18ngen
 type Config struct {
-	Locales              []string `yaml:"locales"`
-	Compound             bool     `yaml:"compound"`
-	MessagesGlob         string   `yaml:"messages"`
-	PlaceholdersGlob     string   `yaml:"placeholders"`
-	OutputDir            string   `yaml:"output_dir"`
-	OutputPackage        string   `yaml:"output_package"`
-	Backend              string   `yaml:"backend"`
-	PluralPlaceholders   []string `yaml:"plural_placeholders"`
+	Locales            []string `yaml:"locales"`
+	Compound           bool     `yaml:"compound"`
+	MessagesGlob       string   `yaml:"messages"`
+	PlaceholdersGlob   string   `yaml:"placeholders"`
+	OutputDir          string   `yaml:"output_dir"`
+	OutputPackage      string   `yaml:"output_package"`
+	PluralPlaceholders []string `yaml:"plural_placeholders"`
 }
 
 // LoadConfig loads configuration from a YAML file
@@ -38,7 +37,6 @@ func LoadConfig(path string) (*Config, error) {
 		PlaceholdersGlob:   "./placeholders/*.yaml",
 		OutputDir:          "./",
 		OutputPackage:      "i18n",
-		Backend:            "builtin",
 		PluralPlaceholders: getDefaultPluralPlaceholders(),
 	}
 
@@ -65,13 +63,7 @@ func LoadConfig(path string) (*Config, error) {
 // that should be treated as plural count fields
 func getDefaultPluralPlaceholders() []string {
 	return []string{
-		"Count",     // Most common: {{.Count}}
-		"Number",    // Common alternative: {{.Number}}
-		"Num",       // Short form: {{.Num}}
-		"Total",     // For totals: {{.Total}}
-		"Amount",    // For amounts: {{.Amount}}
-		"Quantity",  // For quantities: {{.Quantity}}
-		"Size",      // For sizes: {{.Size}}
+		"Count", // Standard pluralization placeholder: {{.Count}}
 	}
 }
 
@@ -81,24 +73,18 @@ func (c *Config) GetPluralPlaceholders() []string {
 	if len(c.PluralPlaceholders) == 0 {
 		c.PluralPlaceholders = getDefaultPluralPlaceholders()
 	}
-	
+
 	var result []string
 	for _, placeholder := range c.PluralPlaceholders {
 		// Add the original name
 		result = append(result, placeholder)
-		
+
 		// Add lowercase version
 		if placeholder != strings.ToLower(placeholder) {
 			result = append(result, strings.ToLower(placeholder))
 		}
-		
-		// Add PluralXxx version for common names
-		if strings.ToLower(placeholder) == "count" {
-			result = append(result, "PluralCount")
-			result = append(result, "pluralcount")
-		}
 	}
-	
+
 	return result
 }
 
@@ -107,12 +93,12 @@ func (c *Config) GetPluralPlaceholders() []string {
 func (c *Config) IsPluralPlaceholder(name string) bool {
 	plurals := c.GetPluralPlaceholders()
 	nameLower := strings.ToLower(name)
-	
+
 	for _, placeholder := range plurals {
 		if strings.ToLower(placeholder) == nameLower {
 			return true
 		}
 	}
-	
+
 	return false
 }

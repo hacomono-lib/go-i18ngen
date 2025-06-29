@@ -8,5 +8,4 @@ type Flags struct {
 	PlaceholdersGlob string
 	OutputDir        string
 	OutputPackage    string
-	Backend          string
 }

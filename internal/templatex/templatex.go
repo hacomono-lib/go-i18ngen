@@ -14,9 +14,6 @@ import (
 	"github.com/hacomono-lib/go-i18ngen/internal/utils"
 )
 
-//go:embed i18n.gotmpl
-var builtinTemplateContent string
-
 //go:embed go-i18n.gotmpl
 var goI18nTemplateContent string
 
@@ -217,15 +214,6 @@ func RenderTemplateWithConfig(tmplContent string, data any, config *TemplateConf
 	return formatted, nil
 }
 
-func Render(
-	outPath, pkg, primaryLocale string,
-	messages []MessageTemplate,
-	placeholders []PlaceholderTemplate,
-	placeholderDefs []Placeholder,
-	messageDefs []Message,
-) error {
-	return RenderWithConfig(outPath, pkg, primaryLocale, messages, placeholders, placeholderDefs, messageDefs, nil)
-}
 
 func RenderGoI18n(
 	outPath, pkg, primaryLocale string,
@@ -250,32 +238,6 @@ func RenderGoI18nWithTemplateFunctions(
 	return RenderGoI18nWithConfigAndTemplateFunctions(outPath, pkg, primaryLocale, messages, placeholders, placeholderDefs, messageDefs, locales, templateFunctions, nil)
 }
 
-func RenderWithConfig(
-	outPath, pkg, primaryLocale string,
-	messages []MessageTemplate,
-	placeholders []PlaceholderTemplate,
-	placeholderDefs []Placeholder,
-	messageDefs []Message,
-	config *TemplateConfig,
-) error {
-	code, err := RenderTemplateWithConfig(builtinTemplateContent, TemplateDef{
-		PackageName:     pkg,
-		PrimaryLocale:   primaryLocale,
-		Messages:        messages,
-		Placeholders:    placeholders,
-		PlaceholderDefs: placeholderDefs,
-		MessageDefs:     messageDefs,
-	}, config)
-	if err != nil {
-		return err // Already wrapped with detailed context
-	}
-
-	if err := os.WriteFile(outPath, code, 0600); err != nil {
-		return fmt.Errorf("failed to write generated code to file %q: %w", outPath, err)
-	}
-
-	return nil
-}
 
 func RenderGoI18nWithConfig(
 	outPath, pkg, primaryLocale string,

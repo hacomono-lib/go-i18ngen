@@ -31,7 +31,7 @@ func (s *TemplatexTestSuite) TearDownTest() {
 	_ = os.RemoveAll(s.tempDir)
 }
 
-func (s *TemplatexTestSuite) TestRender_Success() {
+func (s *TemplatexTestSuite) TestRenderGoI18n_Success() {
 	outputFile := filepath.Join(s.tempDir, "test.go")
 
 	messages := []MessageTemplate{
@@ -80,7 +80,7 @@ func (s *TemplatexTestSuite) TestRender_Success() {
 		},
 	}
 
-	err := Render(
+	err := RenderGoI18n(
 		outputFile,
 		"testpkg",
 		"ja",
@@ -88,6 +88,7 @@ func (s *TemplatexTestSuite) TestRender_Success() {
 		placeholderTemplates,
 		placeholders,
 		messageDefs,
+		[]string{"ja", "en"},
 	)
 
 	s.Assert().NoError(err)
@@ -103,11 +104,11 @@ func (s *TemplatexTestSuite) TestRender_Success() {
 	s.Assert().Contains(contentStr, "NewUserWelcome")
 }
 
-func (s *TemplatexTestSuite) TestRender_InvalidOutputPath() {
+func (s *TemplatexTestSuite) TestRenderGoI18n_InvalidOutputPath() {
 	// Use an invalid path that cannot be created
 	invalidPath := filepath.Join("/invalid", "path", "that", "does", "not", "exist", "test.go")
 
-	err := Render(
+	err := RenderGoI18n(
 		invalidPath,
 		"testpkg",
 		"ja",
@@ -115,16 +116,17 @@ func (s *TemplatexTestSuite) TestRender_InvalidOutputPath() {
 		[]PlaceholderTemplate{},
 		[]Placeholder{},
 		[]Message{},
+		[]string{"ja"},
 	)
 
 	s.Assert().Error(err)
 	s.Assert().Contains(err.Error(), "failed to write generated code")
 }
 
-func (s *TemplatexTestSuite) TestRender_EmptyData() {
+func (s *TemplatexTestSuite) TestRenderGoI18n_EmptyData() {
 	outputFile := filepath.Join(s.tempDir, "empty.go")
 
-	err := Render(
+	err := RenderGoI18n(
 		outputFile,
 		"emptypkg",
 		"en",
@@ -132,6 +134,7 @@ func (s *TemplatexTestSuite) TestRender_EmptyData() {
 		[]PlaceholderTemplate{},
 		[]Placeholder{},
 		[]Message{},
+		[]string{"en"},
 	)
 
 	s.Assert().NoError(err)
@@ -145,12 +148,12 @@ func (s *TemplatexTestSuite) TestRender_EmptyData() {
 	s.Assert().Contains(contentStr, "package emptypkg")
 }
 
-func (s *TemplatexTestSuite) TestRenderWithConfig_Success() {
+func (s *TemplatexTestSuite) TestRenderGoI18nWithTemplateFunctions_Success() {
 	outputFile := filepath.Join(s.tempDir, "config_test.go")
 
-	config := &TemplateConfig{}
+	templateFunctions := map[string]map[string]map[string][]string{}
 
-	err := RenderWithConfig(
+	err := RenderGoI18nWithTemplateFunctions(
 		outputFile,
 		"configpkg",
 		"en",
@@ -158,7 +161,8 @@ func (s *TemplatexTestSuite) TestRenderWithConfig_Success() {
 		[]PlaceholderTemplate{},
 		[]Placeholder{},
 		[]Message{},
-		config,
+		[]string{"en"},
+		templateFunctions,
 	)
 
 	s.Assert().NoError(err)
@@ -171,7 +175,7 @@ func (s *TemplatexTestSuite) TestRenderWithConfig_Success() {
 	s.Assert().Contains(contentStr, "package configpkg")
 }
 
-func (s *TemplatexTestSuite) TestRender_WithMinimalData() {
+func (s *TemplatexTestSuite) TestRenderGoI18n_WithMinimalData() {
 	outputFile := filepath.Join(s.tempDir, "minimal.go")
 
 	// Test with minimal valid data
@@ -195,7 +199,7 @@ func (s *TemplatexTestSuite) TestRender_WithMinimalData() {
 		},
 	}
 
-	err := Render(
+	err := RenderGoI18n(
 		outputFile,
 		"minimalpkg",
 		"en",
@@ -203,6 +207,7 @@ func (s *TemplatexTestSuite) TestRender_WithMinimalData() {
 		[]PlaceholderTemplate{},
 		[]Placeholder{},
 		messageDefs,
+		[]string{"en"},
 	)
 
 	s.Assert().NoError(err)

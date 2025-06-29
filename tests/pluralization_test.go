@@ -62,10 +62,10 @@ UserCount:
     other: "{{.Count}} users"
 
 FileCount:
-  ja: "{{.Number}}個のファイル"
+  ja: "{{.Count}}個のファイル"
   en:
-    one: "{{.Number}} file"
-    other: "{{.Number}} files"
+    one: "{{.Count}} file"
+    other: "{{.Count}} files"
 
 RegularMessage:
   ja: "通常のメッセージです"
@@ -191,9 +191,9 @@ file:
 	})
 	
 	t.Run("various count placeholders", func(t *testing.T) {
-		// Should NOT generate Value types for plural placeholders (Count, Number)
+		// Should NOT generate Value types for plural placeholders (Count)
 		// These are handled by WithCount() method instead
-		countTypes := []string{"Count", "Number"}
+		countTypes := []string{"Count"}
 		for _, countType := range countTypes {
 			if strings.Contains(generatedContent, countType+"Value") {
 				t.Errorf("Should NOT generate %sValue type for plural placeholder", countType)

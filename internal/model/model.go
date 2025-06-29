@@ -156,8 +156,8 @@ func Build(messages []MessageSource, placeholders []PlaceholderSource, locales [
 
 		// Process FieldInfos to generate fields
 		for _, fieldInfo := range msg.FieldInfos {
-			// Skip plural placeholders for go-i18n backend - they will be handled by WithCount() method
-			if cfg.Backend == "go-i18n" && cfg.IsPluralPlaceholder(fieldInfo.Name) {
+			// Skip plural placeholders - they will be handled by WithCount() method
+			if cfg.IsPluralPlaceholder(fieldInfo.Name) {
 				continue
 			}
 			
@@ -239,10 +239,6 @@ func Build(messages []MessageSource, placeholders []PlaceholderSource, locales [
 
 // messageSupportsCount checks if a message has plural forms in any locale
 func messageSupportsCount(templates map[string]string, cfg *config.Config) bool {
-	// Only go-i18n backend supports pluralization
-	if cfg.Backend != "go-i18n" {
-		return false
-	}
 	
 	// Check for configured plural placeholder patterns
 	pluralPlaceholders := cfg.GetPluralPlaceholders()

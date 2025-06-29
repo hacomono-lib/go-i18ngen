@@ -34,7 +34,6 @@ func NewGenerateCommand() *cobra.Command {
 	genCmd.Flags().StringVar(&flags.PlaceholdersGlob, "placeholders", "", "placeholders glob pattern")
 	genCmd.Flags().StringVar(&flags.OutputDir, "output", "", "output directory")
 	genCmd.Flags().StringVar(&flags.OutputPackage, "package", "", "output package name")
-	genCmd.Flags().StringVar(&flags.Backend, "backend", "", "backend type (builtin|go-i18n)")
 
 	return genCmd
 }
@@ -58,9 +57,6 @@ func MergeConfig(cfg *config.Config, flags *Flags) *config.Config {
 	}
 	if flags.OutputPackage != "" {
 		cfg.OutputPackage = flags.OutputPackage
-	}
-	if flags.Backend != "" {
-		cfg.Backend = flags.Backend
 	}
 	return cfg
 }

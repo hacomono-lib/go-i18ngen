@@ -1,6 +1,6 @@
 compound: true
 locales: [ja, en]
-messages: "./messages/*.yaml"
+messages: "./messages/messages.yaml"  # no plurals
 placeholders: "./placeholders/*.yaml"
-output_dir: "./out-go-i18n"
+output_dir: "./out-go-i18n-simple"
 output_package: "i18n"

@@ -16,7 +16,6 @@ type TemplateProcessorTestSuite struct {
 
 func (s *TemplateProcessorTestSuite) SetupSuite() {
 	s.testConfig = &config.Config{
-		Backend:            "builtin", // Use builtin for most tests to avoid go-i18n complexity
 		Locales:            []string{"ja", "en"},
 		Compound:           true,
 		MessagesGlob:       "./messages/*.yaml",
