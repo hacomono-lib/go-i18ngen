@@ -4,6 +4,7 @@ package model
 import (
 	"fmt"
 	"regexp"
+	"strings"
 )
 
 // Pre-compiled regular expressions for better performance
@@ -105,4 +106,69 @@ func processTemplateWithFieldInfos(template string, fieldInfos []FieldInfo) stri
 	})
 
 	return result
+}
+
+// extractTemplateFunctions extracts template functions from a template field expression
+// Example: "{{.field:input | title | upper}}" -> []string{"title", "upper"}
+func extractTemplateFunctions(templateFunctions string) []string {
+	if templateFunctions == "" {
+		return nil
+	}
+	
+	// Remove leading pipe and whitespace
+	functions := strings.TrimSpace(strings.TrimPrefix(templateFunctions, "|"))
+	
+	// Split by pipe and clean up
+	parts := strings.Split(functions, "|")
+	var result []string
+	for _, part := range parts {
+		trimmed := strings.TrimSpace(part)
+		if trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	
+	return result
+}
+
+// BuildTemplateFunctionsMetadata builds template function metadata for go-i18n backend
+func BuildTemplateFunctionsMetadata(messages []MessageSource, locales []string) map[string]map[string]map[string][]string {
+	metadata := make(map[string]map[string]map[string][]string)
+	
+	for _, msg := range messages {
+		metadata[msg.ID] = make(map[string]map[string][]string)
+		
+		for _, locale := range locales {
+			metadata[msg.ID][locale] = make(map[string][]string)
+			
+			template, exists := msg.Templates[locale]
+			if !exists {
+				continue
+			}
+			
+			// Extract template functions for each field
+			for _, fieldInfo := range msg.FieldInfos {
+				functions := extractTemplateFunctionsFromTemplate(template, fieldInfo)
+				if len(functions) > 0 {
+					metadata[msg.ID][locale][fieldInfo.GenerateTemplateKey()] = functions
+				}
+			}
+		}
+	}
+	
+	return metadata
+}
+
+// extractTemplateFunctionsFromTemplate extracts template functions for a specific field from a template
+func extractTemplateFunctionsFromTemplate(template string, fieldInfo FieldInfo) []string {
+	// Create pattern to match the specific field with functions
+	pattern := fmt.Sprintf(`\{\{\s*\.%s(\s*\|[^}]*)?\s*\}\}`, regexp.QuoteMeta(fieldInfo.String()))
+	re := regexp.MustCompile(pattern)
+	
+	matches := re.FindStringSubmatch(template)
+	if len(matches) < 2 {
+		return nil
+	}
+	
+	return extractTemplateFunctions(matches[1])
 }

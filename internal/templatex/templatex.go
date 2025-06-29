@@ -10,16 +10,22 @@ import (
 	"sort"
 	"strings"
 	"text/template"
+
+	"github.com/hacomono-lib/go-i18ngen/internal/utils"
 )
 
 //go:embed i18n.gotmpl
-var templateContent string
+var builtinTemplateContent string
+
+//go:embed go-i18n.gotmpl
+var goI18nTemplateContent string
 
 type Message struct {
-	ID         string
-	StructName string
-	Fields     []Field
-	Templates  map[string]string // locale -> template
+	ID            string
+	StructName    string
+	Fields        []Field
+	Templates     map[string]string // locale -> template
+	SupportsCount bool
 }
 
 type Field struct {
@@ -53,12 +59,15 @@ type PlaceholderTemplate struct {
 }
 
 type TemplateDef struct {
-	PackageName     string
-	PrimaryLocale   string
-	Messages        []MessageTemplate
-	Placeholders    []PlaceholderTemplate
-	PlaceholderDefs []Placeholder
-	MessageDefs     []Message
+	PackageName         string
+	PrimaryLocale       string
+	Messages            []MessageTemplate
+	Placeholders        []PlaceholderTemplate
+	PlaceholderDefs     []Placeholder
+	MessageDefs         []Message
+	Locales             []string
+	MessagesByLocale    map[string]map[string]string
+	TemplateFunctions   map[string]map[string]map[string][]string
 }
 
 // TemplateConfig represents configuration for template generation
@@ -142,6 +151,7 @@ func CreateFuncMap() template.FuncMap {
 			sort.Strings(keys)
 			return keys[len(keys)-1]
 		},
+		"safeIdent": utils.SafeGoIdentifier,
 	}
 }
 
@@ -178,6 +188,29 @@ func Render(
 	return RenderWithConfig(outPath, pkg, primaryLocale, messages, placeholders, placeholderDefs, messageDefs, nil)
 }
 
+func RenderGoI18n(
+	outPath, pkg, primaryLocale string,
+	messages []MessageTemplate,
+	placeholders []PlaceholderTemplate,
+	placeholderDefs []Placeholder,
+	messageDefs []Message,
+	locales []string,
+) error {
+	return RenderGoI18nWithConfig(outPath, pkg, primaryLocale, messages, placeholders, placeholderDefs, messageDefs, locales, nil)
+}
+
+func RenderGoI18nWithTemplateFunctions(
+	outPath, pkg, primaryLocale string,
+	messages []MessageTemplate,
+	placeholders []PlaceholderTemplate,
+	placeholderDefs []Placeholder,
+	messageDefs []Message,
+	locales []string,
+	templateFunctions map[string]map[string]map[string][]string,
+) error {
+	return RenderGoI18nWithConfigAndTemplateFunctions(outPath, pkg, primaryLocale, messages, placeholders, placeholderDefs, messageDefs, locales, templateFunctions, nil)
+}
+
 func RenderWithConfig(
 	outPath, pkg, primaryLocale string,
 	messages []MessageTemplate,
@@ -186,7 +219,7 @@ func RenderWithConfig(
 	messageDefs []Message,
 	config *TemplateConfig,
 ) error {
-	code, err := RenderTemplateWithConfig(templateContent, TemplateDef{
+	code, err := RenderTemplateWithConfig(builtinTemplateContent, TemplateDef{
 		PackageName:     pkg,
 		PrimaryLocale:   primaryLocale,
 		Messages:        messages,
@@ -196,6 +229,67 @@ func RenderWithConfig(
 	}, config)
 	if err != nil {
 		return err // Already wrapped with detailed context
+	}
+
+	if err := os.WriteFile(outPath, code, 0600); err != nil {
+		return fmt.Errorf("failed to write generated code to file %q: %w", outPath, err)
+	}
+
+	return nil
+}
+
+func RenderGoI18nWithConfig(
+	outPath, pkg, primaryLocale string,
+	messages []MessageTemplate,
+	placeholders []PlaceholderTemplate,
+	placeholderDefs []Placeholder,
+	messageDefs []Message,
+	locales []string,
+	config *TemplateConfig,
+) error {
+	// Build template functions metadata - empty for backward compatibility
+	templateFunctions := make(map[string]map[string]map[string][]string)
+	return RenderGoI18nWithConfigAndTemplateFunctions(outPath, pkg, primaryLocale, messages, placeholders, placeholderDefs, messageDefs, locales, templateFunctions, config)
+}
+
+func RenderGoI18nWithConfigAndTemplateFunctions(
+	outPath, pkg, primaryLocale string,
+	messages []MessageTemplate,
+	placeholders []PlaceholderTemplate,
+	placeholderDefs []Placeholder,
+	messageDefs []Message,
+	locales []string,
+	templateFunctions map[string]map[string]map[string][]string,
+	config *TemplateConfig,
+) error {
+	// Build message data by locale for go-i18n
+	messagesByLocale := make(map[string]map[string]string)
+	for _, locale := range locales {
+		messagesByLocale[locale] = make(map[string]string)
+	}
+	
+	for _, msg := range messages {
+		for locale, template := range msg.Templates {
+			if messagesByLocale[locale] == nil {
+				messagesByLocale[locale] = make(map[string]string)
+			}
+			messagesByLocale[locale][msg.ID] = template
+		}
+	}
+	
+	code, err := RenderTemplateWithConfig(goI18nTemplateContent, TemplateDef{
+		PackageName:       pkg,
+		PrimaryLocale:     primaryLocale,
+		Messages:          messages,
+		Placeholders:      placeholders,
+		PlaceholderDefs:   placeholderDefs,
+		MessageDefs:       messageDefs,
+		Locales:           locales,
+		MessagesByLocale:  messagesByLocale,
+		TemplateFunctions: templateFunctions,
+	}, config)
+	if err != nil {
+		return err
 	}
 
 	if err := os.WriteFile(outPath, code, 0600); err != nil {

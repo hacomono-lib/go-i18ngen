@@ -1,0 +1,7 @@
+compound: true
+locales: [ja, en]
+messages: "./messages/*.yaml"
+placeholders: "./placeholders/*.yaml"
+output_dir: "./out-go-i18n"
+output_package: "i18n"
+backend: "go-i18n"

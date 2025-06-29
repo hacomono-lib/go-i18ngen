@@ -13,3 +13,20 @@ func ToCamelCase(s string) string {
 	}
 	return strings.Join(parts, "")
 }
+
+// Go reserved words that cannot be used as identifiers
+var goReservedWords = map[string]bool{
+	"break": true, "case": true, "chan": true, "const": true, "continue": true,
+	"default": true, "defer": true, "else": true, "fallthrough": true, "for": true,
+	"func": true, "go": true, "goto": true, "if": true, "import": true,
+	"interface": true, "map": true, "package": true, "range": true, "return": true,
+	"select": true, "struct": true, "switch": true, "type": true, "var": true,
+}
+
+// SafeGoIdentifier escapes Go reserved words by appending underscore
+func SafeGoIdentifier(name string) string {
+	if goReservedWords[strings.ToLower(name)] {
+		return name + "_"
+	}
+	return name
+}

@@ -8,10 +8,13 @@ i18ngen is a CLI tool that automatically generates type-safe Go code for interna
 
 ## Features
 
+- **Multiple backend support** - Choose between `builtin` (simple templates) or `go-i18n` (CLDR-compliant pluralization)
 - **Type-safe message construction** - No more string concatenation or runtime errors
+- **CLDR pluralization support** - Full Unicode CLDR plural rules with `go-i18n` backend
 - **Automatic template rendering** - Built-in Go template processing with placeholders
 - **Template functions** - Essential string manipulation functions (title, upper, lower)
 - **Suffix notation** - Meaningful parameter names with `:suffix` syntax (e.g., `{{.entity:from}}`, `{{.field:input}}`)
+- **Plural placeholder handling** - Automatic `WithCount()` method generation for plural-aware messages
 - **Locale fallback handling** - Graceful degradation when translations are missing
 - **Compile-time validation** - Catch missing parameters at build time, not runtime
 - **Utility access patterns** - Pre-defined instances for common use cases
@@ -29,6 +32,7 @@ go install github.com/hacomono-lib/go-i18ngen@latest
 1. Create a configuration file `config.yaml`:
 
 ```yaml
+backend: "builtin"  # or "go-i18n" for pluralization support
 compound: true
 locales: [ja, en]
 messages: "./messages/*.yaml"
@@ -633,6 +637,90 @@ docker run --rm -v $(pwd):/workspace -w /workspace \
    # Add user to docker group (Linux)
    sudo usermod -aG docker $USER
    ```
+
+## Backend Support
+
+i18ngen supports two backends for different internationalization needs:
+
+### Builtin Backend
+
+The default backend using Go's `text/template` for simple localization:
+
+```yaml
+backend: "builtin"  # Default if not specified
+```
+
+- Simple template processing
+- Template functions (title, upper, lower)
+- No pluralization support
+- All placeholders generate typed fields
+
+### go-i18n Backend
+
+Advanced backend with CLDR-compliant pluralization support:
+
+```yaml
+backend: "go-i18n"
+```
+
+- Full Unicode CLDR plural rules support
+- Automatic pluralization handling
+- Plural placeholder exclusion
+- `WithCount()` method generation
+
+#### Pluralization with go-i18n
+
+When using the `go-i18n` backend, certain placeholder names are treated as plural count fields:
+
+**Default plural placeholders**: `Count`, `Number`, `Num`, `Total`, `Amount`, `Quantity`, `Size` (case-insensitive)
+
+```yaml
+# Pluralization example
+ItemCount:
+  ja: "{{.entity}} アイテム ({{.Count}}個)"
+  en:
+    one: "{{.entity}} item"
+    other: "{{.entity}} items ({{.Count}})"
+
+FileCount:
+  ja: "{{.Number}}個のファイル"
+  en:
+    one: "{{.Number}} file"
+    other: "{{.Number}} files"
+```
+
+Generated code for go-i18n backend:
+
+```go
+type ItemCount struct {
+    Entity EntityText  // Regular placeholder
+    count  *int        // Internal count field (not exposed)
+}
+
+// Constructor without count parameter
+func NewItemCount(entity EntityText) ItemCount
+
+// Pluralization method
+func (m ItemCount) WithCount(count int) ItemCount
+
+// Usage
+message := NewItemCount(EntityTexts.Product).WithCount(5)
+result := message.Localize("en") // "Product items (5)"
+```
+
+**Key differences from builtin backend**:
+- `{{.Count}}` and `{{.Number}}` do NOT generate `CountValue` or `NumberValue` types
+- Instead, a `WithCount(int)` method is generated
+- go-i18n automatically selects the correct plural form based on the count and locale
+
+#### Custom Plural Placeholders
+
+You can customize which placeholder names are treated as plural:
+
+```yaml
+backend: "go-i18n"
+plural_placeholders: ["Count", "Quantity", "Amount"]  # Custom list
+```
 
 ## Examples
 

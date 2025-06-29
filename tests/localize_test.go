@@ -1,4 +1,4 @@
-package i18ngen
+package tests
 
 import (
 	"bytes"

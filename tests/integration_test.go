@@ -1,4 +1,4 @@
-package i18ngen_test
+package tests
 
 import (
 	"os"

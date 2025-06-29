@@ -234,6 +234,18 @@ func decodeMessageFile(file *os.File, ext string) (map[string]map[string]string,
 		}
 	}
 
+	// Try mixed format that supports both strings and pluralization objects
+	var mixedData map[string]map[string]interface{}
+	if ext == jsonExt {
+		if jsonErr := json.Unmarshal(content, &mixedData); jsonErr == nil {
+			return convertMixedToStringMap(mixedData), nil
+		}
+	} else {
+		if yamlErr := yaml.Unmarshal(content, &mixedData); yamlErr == nil {
+			return convertMixedToStringMap(mixedData), nil
+		}
+	}
+
 	// Fall back to simple format (map[string]string) and convert to compound format
 	var data map[string]string
 	if ext == jsonExt {
@@ -253,4 +265,63 @@ func decodeMessageFile(file *os.File, ext string) (map[string]map[string]string,
 		}
 	}
 	return result, nil
+}
+
+// convertMixedToStringMap converts mixed format (string or pluralization object) to string-only format
+func convertMixedToStringMap(mixedData map[string]map[string]interface{}) map[string]map[string]string {
+	result := make(map[string]map[string]string)
+	
+	for messageID, localeData := range mixedData {
+		result[messageID] = make(map[string]string)
+		
+		for locale, value := range localeData {
+			switch v := value.(type) {
+			case string:
+				// Simple string template
+				result[messageID][locale] = v
+			case map[string]interface{}:
+				// Pluralization object - convert to go-i18n format
+				result[messageID][locale] = convertPluralToTemplate(v)
+			case map[interface{}]interface{}:
+				// YAML can parse as map[interface{}]interface{}, convert it
+				stringMap := make(map[string]interface{})
+				for k, val := range v {
+					if str, ok := k.(string); ok {
+						stringMap[str] = val
+					}
+				}
+				result[messageID][locale] = convertPluralToTemplate(stringMap)
+			default:
+				// Fallback to string representation
+				result[messageID][locale] = fmt.Sprintf("%v", v)
+			}
+		}
+	}
+	
+	return result
+}
+
+// convertPluralToTemplate converts plural forms to a single template with go-i18n format
+func convertPluralToTemplate(pluralMap map[string]interface{}) string {
+	// For now, prioritize "other" form, then "one", then any available
+	if other, exists := pluralMap["other"]; exists {
+		if str, ok := other.(string); ok {
+			return str
+		}
+	}
+	
+	if one, exists := pluralMap["one"]; exists {
+		if str, ok := one.(string); ok {
+			return str
+		}
+	}
+	
+	// Return first available form
+	for _, value := range pluralMap {
+		if str, ok := value.(string); ok {
+			return str
+		}
+	}
+	
+	return "{{.Count}} items" // fallback
 }

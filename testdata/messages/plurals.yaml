@@ -1,0 +1,11 @@
+ItemCount:
+  ja: "{{.entity}} アイテム ({{.Count}}個)"
+  en:
+    one: "{{.entity}} item"
+    other: "{{.entity}} items ({{.Count}})"
+
+UserCount:
+  ja: "{{.Count}}人のユーザー"
+  en:
+    one: "{{.Count}} user"
+    other: "{{.Count}} users"

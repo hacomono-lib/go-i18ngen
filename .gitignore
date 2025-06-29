@@ -44,4 +44,12 @@ coverage.html
 
 # Local environment files
 .env
-.env.local 
+.env.local
+
+# Test data generated files
+testdata/out/
+!testdata/out/.gitkeep
+testdata/out-go-i18n/
+!testdata/out-go-i18n/.gitkeep
+testdata/*.gen.go
+testdata/test_*.go

@@ -3,10 +3,14 @@ package utils
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
 
-func TestToCamelCase(t *testing.T) {
+type CaseTestSuite struct {
+	suite.Suite
+}
+
+func (s *CaseTestSuite) TestToCamelCase() {
 	tests := []struct {
 		name     string
 		input    string
@@ -28,9 +32,14 @@ func TestToCamelCase(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		s.Run(tt.name, func() {
 			result := ToCamelCase(tt.input)
-			assert.Equal(t, tt.expected, result)
+			s.Equal(tt.expected, result)
 		})
 	}
+}
+
+// Run the test suite
+func TestCaseSuite(t *testing.T) {
+	suite.Run(t, new(CaseTestSuite))
 }

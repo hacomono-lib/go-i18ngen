@@ -4,7 +4,9 @@ package model
 import (
 	"regexp"
 	"sort"
+	"strings"
 
+	"github.com/hacomono-lib/go-i18ngen/internal/config"
 	"github.com/hacomono-lib/go-i18ngen/internal/templatex"
 	"github.com/hacomono-lib/go-i18ngen/internal/utils"
 )
@@ -70,7 +72,7 @@ func generateStructName(id string) string {
 	return utils.ToCamelCase(id)
 }
 
-func Build(messages []MessageSource, placeholders []PlaceholderSource, locales []string) (*Definitions, error) {
+func Build(messages []MessageSource, placeholders []PlaceholderSource, locales []string, cfg *config.Config) (*Definitions, error) {
 	defs := Definitions{}
 
 	// Determine primary locale (first locale in configuration)
@@ -153,6 +155,11 @@ func Build(messages []MessageSource, placeholders []PlaceholderSource, locales [
 
 		// Process FieldInfos to generate fields
 		for _, fieldInfo := range msg.FieldInfos {
+			// Skip plural placeholders for go-i18n backend - they will be handled by WithCount() method
+			if cfg.Backend == "go-i18n" && cfg.IsPluralPlaceholder(fieldInfo.Name) {
+				continue
+			}
+			
 			fieldName := fieldInfo.GenerateFieldName()
 			templateKey := fieldInfo.GenerateTemplateKey()
 
@@ -204,11 +211,15 @@ func Build(messages []MessageSource, placeholders []PlaceholderSource, locales [
 		// Process templates with FieldInfos
 		processedTemplates := ProcessMessageTemplatesWithFieldInfos(originalTemplates, msg.FieldInfos)
 
+		// Check if message supports count (has pluralization)
+		supportsCount := messageSupportsCount(originalTemplates, cfg)
+		
 		defs.Messages = append(defs.Messages, templatex.Message{
-			ID:         msg.ID,
-			StructName: structName,
-			Fields:     fields,
-			Templates:  processedTemplates,
+			ID:            msg.ID,
+			StructName:    structName,
+			Fields:        fields,
+			Templates:     processedTemplates,
+			SupportsCount: supportsCount,
 		})
 	}
 
@@ -222,6 +233,41 @@ func Build(messages []MessageSource, placeholders []PlaceholderSource, locales [
 	})
 
 	return &defs, nil
+}
+
+// messageSupportsCount checks if a message has plural forms in any locale
+func messageSupportsCount(templates map[string]string, cfg *config.Config) bool {
+	// Only go-i18n backend supports pluralization
+	if cfg.Backend != "go-i18n" {
+		return false
+	}
+	
+	// Check for configured plural placeholder patterns
+	pluralPlaceholders := cfg.GetPluralPlaceholders()
+	
+	for _, template := range templates {
+		// Check for plural placeholders (with flexible spacing)
+		for _, placeholder := range pluralPlaceholders {
+			// Create regex pattern to match {{.placeholder}} or {{ .placeholder }} etc.
+			// \{\{\s*\.\s*placeholder\s*\}\}
+			pattern := `\{\{\s*\.\s*` + regexp.QuoteMeta(placeholder) + `\s*\}\}`
+			matched, _ := regexp.MatchString(pattern, template)
+			if matched {
+				return true
+			}
+		}
+		
+		// Also check for go-i18n specific pluralization patterns
+		// Templates that have "one:", "other:", "few:", etc. are typically plural
+		if strings.Contains(template, "one:") || 
+		   strings.Contains(template, "other:") || 
+		   strings.Contains(template, "few:") || 
+		   strings.Contains(template, "many:") || 
+		   strings.Contains(template, "zero:") {
+			return true
+		}
+	}
+	return false
 }
 
 // BuildTemplates builds message and placeholder templates from source data
