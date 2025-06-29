@@ -251,7 +251,7 @@ type {{$msg.StructName}} struct {
 {{- end}}
 {{- if .SupportsCount}}
 //
-// This message supports pluralization using WithCount() method.
+// This message supports pluralization using WithPluralCount() method.
 // Plural forms are handled automatically based on CLDR rules.
 {{- end}}
 func New{{$msg.StructName}}({{- range $i, $field := $msg.Fields}}{{if $i}}, {{end}}{{safeIdent (camelCase .TemplateKey)}} {{.Type}}{{- end}}) {{$msg.StructName}} {
@@ -263,16 +263,16 @@ func New{{$msg.StructName}}({{- range $i, $field := $msg.Fields}}{{if $i}}, {{en
 }
 
 {{- if .SupportsCount}}
-// WithCount adds count support for pluralization.
+// WithPluralCount adds count support for pluralization.
 //
 // This method enables automatic plural form selection based on CLDR rules.
 // The count value is used to determine the appropriate plural form (one, other, etc.)
 // for languages that support pluralization.
 //
 // Example usage:
-//   msg := New{{$msg.StructName}}(...).WithCount(5)
+//   msg := New{{$msg.StructName}}(...).WithPluralCount(5)
 //   localized := msg.Localize("en") // Uses "other" form for count > 1
-func (m {{$msg.StructName}}) WithCount(count int) {{$msg.StructName}} {
+func (m {{$msg.StructName}}) WithPluralCount(count int) {{$msg.StructName}} {
 	m.count = &count
 	return m
 }

@@ -66,7 +66,7 @@ func testBasicGoI18nBackend(t *testing.T) {
 	assert.Contains(t, content, "go-i18n", "Go-i18n backend should import go-i18n")
 	assert.Contains(t, content, "messageData", "Go-i18n should have embedded messageData")
 	assert.Contains(t, content, "placeholderData", "Go-i18n should have embedded placeholderData")
-	assert.Contains(t, content, "WithCount", "Go-i18n should support WithCount for pluralization")
+	assert.Contains(t, content, "WithPluralCount", "Go-i18n should support WithPluralCount for pluralization")
 	
 	t.Log("✓ Basic go-i18n backend test passed")
 }

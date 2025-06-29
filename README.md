@@ -123,7 +123,7 @@ func main() {
     fmt.Println(msg.Localize("en")) // "User not found: already deleted"
     
     // Pluralization support
-    items := NewItemCount(EntityTexts.Product).WithCount(5)
+    items := NewItemCount(EntityTexts.Product).WithPluralCount(5)
     fmt.Println(items.Localize("en")) // "Product items (5)"
     
     // Dynamic values
@@ -286,10 +286,10 @@ Generated code supports automatic plural form selection:
 
 ```go
 // Automatically selects correct plural form based on count
-msg := NewItemCount(EntityTexts.Product).WithCount(1)
+msg := NewItemCount(EntityTexts.Product).WithPluralCount(1)
 fmt.Println(msg.Localize("en")) // "1 Product item"
 
-msg = NewItemCount(EntityTexts.Product).WithCount(5)
+msg = NewItemCount(EntityTexts.Product).WithPluralCount(5)
 fmt.Println(msg.Localize("en")) // "5 Product items"
 ```
 
@@ -418,7 +418,7 @@ func NewItemCount(entity EntityText) ItemCount {
 }
 
 // Enables pluralization
-func (m ItemCount) WithCount(count int) ItemCount {
+func (m ItemCount) WithPluralCount(count int) ItemCount {
     m.count = &count
     return m
 }

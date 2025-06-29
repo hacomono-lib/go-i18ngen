@@ -149,7 +149,7 @@ file:
 			// Look for "count *int" field declaration using pre-compiled regex
 			hasCountField := countFieldPattern.MatchString(structContent)
 			// WithCount method is defined outside the struct, so search in full content
-			withCountPattern := "func (m " + msgName + ") WithCount(count int)"
+			withCountPattern := "func (m " + msgName + ") WithPluralCount(count int)"
 			hasWithCount := strings.Contains(generatedContent, withCountPattern)
 			
 			if shouldHave {
@@ -157,14 +157,14 @@ file:
 					t.Errorf("%s should have count field for pluralization", msgName)
 				}
 				if !hasWithCount {
-					t.Errorf("%s should have WithCount method", msgName)
+					t.Errorf("%s should have WithPluralCount method", msgName)
 				}
 			} else {
 				if hasCountField {
 					t.Errorf("%s should not have count field", msgName)
 				}
 				if hasWithCount {
-					t.Errorf("%s should not have WithCount method", msgName)
+					t.Errorf("%s should not have WithPluralCount method", msgName)
 				}
 			}
 		}
@@ -326,14 +326,14 @@ dummy:
 		}
 	}
 	
-	// MixedFormat should have WithCount (has {{.Count}})
-	if !strings.Contains(generatedContent, "func (m MixedFormat) WithCount") {
-		t.Error("MixedFormat should have WithCount method")
+	// MixedFormat should have WithPluralCount (has {{.Count}})
+	if !strings.Contains(generatedContent, "func (m MixedFormat) WithPluralCount") {
+		t.Error("MixedFormat should have WithPluralCount method")
 	}
 	
-	// StringOnly should not have WithCount
-	if strings.Contains(generatedContent, "func (m StringOnly) WithCount") {
-		t.Error("StringOnly should not have WithCount method")
+	// StringOnly should not have WithPluralCount
+	if strings.Contains(generatedContent, "func (m StringOnly) WithPluralCount") {
+		t.Error("StringOnly should not have WithPluralCount method")
 	}
 	
 	t.Logf("Pluralization parser test passed")
