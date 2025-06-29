@@ -12,46 +12,59 @@ import (
 // Primary locale for fallback (first locale in configuration)
 const primaryLocale = "{{.PrimaryLocale}}"
 
-// Template cache for better performance
+// Template cache and function map for better performance
 var (
 	templateCache = make(map[string]*template.Template)
 	templateMutex sync.RWMutex
+	templateFuncs template.FuncMap
+	funcOnce      sync.Once
 )
 
-// getTemplateFunctions returns basic template functions for message rendering
+// getTemplateFunctions returns cached template functions for message rendering
 func getTemplateFunctions() template.FuncMap {
-	return template.FuncMap{
-		"title": func(s string) string {
-			if len(s) == 0 {
-				return s
-			}
-			return strings.ToUpper(s[:1]) + s[1:]
-		},
-		"upper": func(s string) string {
-			return strings.ToUpper(s)
-		},
-		"lower": func(s string) string {
-			return strings.ToLower(s)
-		},
-		"camelCase": func(s string) string {
-			parts := strings.Split(s, "_")
-			if len(parts) == 0 {
-				return s
-			}
-			result := parts[0]
-			for i := 1; i < len(parts); i++ {
-				if len(parts[i]) > 0 {
-					result += strings.ToUpper(parts[i][:1]) + parts[i][1:]
+	funcOnce.Do(func() {
+		templateFuncs = template.FuncMap{
+			"title": func(s string) string {
+				if len(s) == 0 {
+					return s
 				}
-			}
-			return result
-		},
-	}
+				return strings.ToUpper(s[:1]) + s[1:]
+			},
+			"upper": func(s string) string {
+				return strings.ToUpper(s)
+			},
+			"lower": func(s string) string {
+				return strings.ToLower(s)
+			},
+			"camelCase": func(s string) string {
+				parts := strings.Split(s, "_")
+				if len(parts) == 0 {
+					return s
+				}
+				var builder strings.Builder
+				builder.Grow(len(s)) // Pre-allocate capacity
+				builder.WriteString(parts[0])
+				for i := 1; i < len(parts); i++ {
+					if len(parts[i]) > 0 {
+						builder.WriteString(strings.ToUpper(parts[i][:1]))
+						builder.WriteString(parts[i][1:])
+					}
+				}
+				return builder.String()
+			},
+		}
+	})
+	return templateFuncs
 }
 
 // getOrCreateTemplate gets a cached template or creates and caches a new one
 func getOrCreateTemplate(messageID, templateStr string) (*template.Template, error) {
-	cacheKey := messageID + ":" + templateStr
+	var builder strings.Builder
+	builder.Grow(len(messageID) + len(templateStr) + 1) // Pre-allocate for key
+	builder.WriteString(messageID)
+	builder.WriteByte(':')
+	builder.WriteString(templateStr)
+	cacheKey := builder.String()
 
 	// Try to get from cache with read lock
 	templateMutex.RLock()

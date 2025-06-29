@@ -97,7 +97,7 @@ func localizeWithFields(messageID, locale string, fields map[string]string) stri
 
 // buildTemplateData constructs template data with template function processing
 func buildTemplateData(messageID, locale string, fields map[string]string) map[string]interface{} {
-	result := make(map[string]interface{})
+	result := make(map[string]interface{}, len(fields)) // Pre-allocate capacity
 	
 	for fieldName, value := range fields {
 		result[fieldName] = processField(value, messageID, fieldName, locale)
@@ -120,12 +120,20 @@ func processField(value, messageID, fieldName, locale string) string {
 
 // applyTemplateFunctions applies a series of template functions to a value
 func applyTemplateFunctions(value string, functions []string) string {
+	if len(functions) == 0 {
+		return value
+	}
+	
 	result := value
 	for _, fn := range functions {
 		switch fn {
 		case "title":
 			if len(result) > 0 {
-				result = strings.ToUpper(result[:1]) + result[1:]
+				var builder strings.Builder
+				builder.Grow(len(result))
+				builder.WriteString(strings.ToUpper(result[:1]))
+				builder.WriteString(result[1:])
+				result = builder.String()
 			}
 		case "upper":
 			result = strings.ToUpper(result)
