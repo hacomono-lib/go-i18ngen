@@ -717,6 +717,22 @@ docker run --rm -v $(pwd):/workspace -w /workspace \
 - Add tests for new functionality
 - Update documentation as needed
 
+#### Tool Version Management
+
+The project uses specific versions of development tools to ensure consistency between local development and CI:
+
+- **golangci-lint version**: Defined in `Makefile` as `GOLANGCI_LINT_VERSION`
+- **CI automatically reads**: The GitHub Actions workflow reads this version from the Makefile
+- **To update versions**: Only modify the version in `Makefile` - CI will automatically use the new version
+
+```bash
+# To update golangci-lint version, edit this line in Makefile:
+GOLANGCI_LINT_VERSION=v1.61.0
+
+# Then run to update local tools:
+make install-tools
+```
+
 ### Project Structure
 
 ```

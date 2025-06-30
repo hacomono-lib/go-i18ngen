@@ -8,6 +8,9 @@ GOMOD=$(GOCMD) mod
 GOFMT=gofmt
 GOLINT=golangci-lint
 
+# golangci-lint version (single source of truth - CI reads this value)
+GOLANGCI_LINT_VERSION=v1.64.8
+
 # Binary info
 BINARY_NAME=go-i18ngen
 BINARY_PATH=.
@@ -42,8 +45,8 @@ fmt: ## Format code
 	$(GOFMT) -s -w .
 
 .PHONY: lint
-lint: ## Run linter
-	$(GOLINT) run --timeout=5m
+lint: install-golangci-lint ## Run linter
+	$$(go env GOPATH)/bin/golangci-lint run --timeout=5m
 
 .PHONY: test
 test: ## Run tests
@@ -117,11 +120,17 @@ run: ## Run the application with example config
 	$(GOCMD) run . --help
 
 .PHONY: dev-setup
-dev-setup: deps ## Setup development environment
-	@command -v golangci-lint >/dev/null 2>&1 || { \
-		echo "Installing golangci-lint..."; \
-		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin; \
-	}
+dev-setup: deps install-golangci-lint ## Setup development environment
+	@echo "Development environment setup complete"
+
+.PHONY: install-golangci-lint
+install-golangci-lint: ## Install golangci-lint with specified version
+	@if ! $$(go env GOPATH)/bin/golangci-lint version 2>/dev/null | grep -q "$(GOLANGCI_LINT_VERSION)"; then \
+		echo "Installing golangci-lint $(GOLANGCI_LINT_VERSION)..."; \
+		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin $(GOLANGCI_LINT_VERSION); \
+	else \
+		echo "golangci-lint $(GOLANGCI_LINT_VERSION) already installed"; \
+	fi
 
 .PHONY: check
 check: fmt lint test ## Run all checks (format, lint, test)
@@ -171,4 +180,4 @@ update-deps: ## Update all dependencies
 	$(GOMOD) tidy
 
 # Default target
-.DEFAULT_GOAL := help 
+.DEFAULT_GOAL := help

@@ -155,8 +155,8 @@ func lastKeyFunc(m map[string]string) string {
 	return keys[len(keys)-1]
 }
 
-func formatPluralTemplateFunc(template interface{}) string {
-	switch t := template.(type) {
+func formatPluralTemplateFunc(tmpl interface{}) string {
+	switch t := tmpl.(type) {
 	case string:
 		return fmt.Sprintf("%q", t)
 	case map[string]interface{}:
