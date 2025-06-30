@@ -18,12 +18,13 @@ import (
 var goI18nTemplateContent string
 
 type Message struct {
-	ID            string
-	StructName    string
-	Fields        []Field
-	Templates     map[string]string      // locale -> template (simplified for processing)
-	RawTemplates  map[string]interface{} // locale -> raw template data (preserves plural forms)
-	SupportsCount bool
+	ID                string
+	StructName        string
+	Fields            []Field
+	Templates         map[string]string      // locale -> template (simplified for processing)
+	RawTemplates      map[string]interface{} // locale -> raw template data (preserves plural forms)
+	SupportsCount     bool
+	PluralPlaceholder string // The actual plural placeholder key used (e.g., "Count", "Quantity")
 }
 
 type Field struct {

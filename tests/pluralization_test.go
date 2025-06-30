@@ -179,14 +179,14 @@ file:
 	})
 
 	t.Run("pluralization config", func(t *testing.T) {
-		// Should set PluralCount in LocalizeConfig
-		if !strings.Contains(generatedContent, "config.PluralCount = *m.count") {
+		// Should set PluralCount in LocalizeConfig (now in localizeWithConfig helper)
+		if !strings.Contains(generatedContent, "config.PluralCount = *pluralCount") {
 			t.Error("Should set PluralCount in LocalizeConfig")
 		}
 
-		// Should add Count to TemplateData
-		if !strings.Contains(generatedContent, `config.TemplateData["Count"] = *m.count`) {
-			t.Error("Should add Count to TemplateData")
+		// Should add the actual plural placeholder key to TemplateData (now in localizeWithConfig helper)
+		if !strings.Contains(generatedContent, `templateData[pluralKey] = *pluralCount`) {
+			t.Error("Should add plural key to TemplateData")
 		}
 	})
 

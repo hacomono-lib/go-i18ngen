@@ -214,14 +214,16 @@ func Build(messages []MessageSource, placeholders []PlaceholderSource, locales [
 
 		// Check if message supports count (has pluralization)
 		supportsCount := messageSupportsCount(originalTemplates, cfg)
+		pluralPlaceholder := getMessagePluralPlaceholder(originalTemplates, cfg)
 
 		defs.Messages = append(defs.Messages, templatex.Message{
-			ID:            msg.ID,
-			StructName:    structName,
-			Fields:        fields,
-			Templates:     processedTemplates,
-			RawTemplates:  msg.RawTemplates,
-			SupportsCount: supportsCount,
+			ID:                msg.ID,
+			StructName:        structName,
+			Fields:            fields,
+			Templates:         processedTemplates,
+			RawTemplates:      msg.RawTemplates,
+			SupportsCount:     supportsCount,
+			PluralPlaceholder: pluralPlaceholder,
 		})
 	}
 
@@ -239,19 +241,16 @@ func Build(messages []MessageSource, placeholders []PlaceholderSource, locales [
 
 // messageSupportsCount checks if a message has plural forms in any locale
 func messageSupportsCount(templates map[string]string, cfg *config.Config) bool {
-	// Check for configured plural placeholder patterns
-	pluralPlaceholders := cfg.GetPluralPlaceholders()
+	pluralPlaceholder := cfg.GetPluralPlaceholder()
 
 	for _, template := range templates {
-		// Check for plural placeholders (with flexible spacing)
-		for _, placeholder := range pluralPlaceholders {
-			// Create regex pattern to match {{.placeholder}} or {{ .placeholder }} etc.
-			// \{\{\s*\.\s*placeholder\s*\}\}
-			pattern := `\{\{\s*\.\s*` + regexp.QuoteMeta(placeholder) + `\s*\}\}`
-			matched, _ := regexp.MatchString(pattern, template)
-			if matched {
-				return true
-			}
+		// Check for the configured plural placeholder (case-insensitive)
+		// Create regex pattern to match {{.placeholder}} or {{ .placeholder }} etc.
+		// (?i)\{\{\s*\.\s*placeholder\s*\}\}
+		pattern := `(?i)\{\{\s*\.\s*` + regexp.QuoteMeta(pluralPlaceholder) + `\s*\}\}`
+		matched, _ := regexp.MatchString(pattern, template)
+		if matched {
+			return true
 		}
 
 		// Also check for go-i18n specific pluralization patterns
@@ -265,6 +264,30 @@ func messageSupportsCount(templates map[string]string, cfg *config.Config) bool 
 		}
 	}
 	return false
+}
+
+// getMessagePluralPlaceholder returns the plural placeholder key used in a message, or empty string if none
+func getMessagePluralPlaceholder(templates map[string]string, cfg *config.Config) string {
+	pluralPlaceholder := cfg.GetPluralPlaceholder()
+
+	for _, template := range templates {
+		// Find the exact case-sensitive match in the template
+		// Create regex pattern to match {{.placeholder}} and capture the actual case used
+		pattern := `\{\{\s*\.\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}`
+		re := regexp.MustCompile(pattern)
+		matches := re.FindAllStringSubmatch(template, -1)
+
+		for _, match := range matches {
+			if len(match) > 1 {
+				foundPlaceholder := match[1]
+				// Check if this matches our configured plural placeholder (case-insensitive)
+				if strings.EqualFold(foundPlaceholder, pluralPlaceholder) {
+					return foundPlaceholder // Return the actual case used in template
+				}
+			}
+		}
+	}
+	return ""
 }
 
 // BuildTemplates builds message and placeholder templates from source data

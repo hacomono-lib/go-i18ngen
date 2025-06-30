@@ -144,7 +144,7 @@ func main() {
 | `placeholders` | string | Yes | Glob pattern for placeholder files |
 | `output_dir` | string | Yes | Output directory for generated code |
 | `output_package` | string | Yes | Generated package name |
-| `plural_placeholders` | []string | No | Custom plural placeholder names |
+| `plural_placeholder` | string | No | Custom plural placeholder name (default: Count) |
 
 ### Example Configuration
 
@@ -165,8 +165,8 @@ placeholders: "./locales/placeholders/*.yaml"
 output_dir: "./internal/i18n"
 output_package: "i18n"
 
-# Optional: Custom plural placeholders
-plural_placeholders: ["Count", "Quantity", "Amount", "Total"]
+# Optional: Custom plural placeholder
+plural_placeholder: "Total"
 ```
 
 ### File Formats
@@ -550,7 +550,7 @@ Configure custom placeholder names for pluralization:
 
 ```yaml
 # config.yaml
-plural_placeholders: ["Count", "Quantity", "Amount", "Total", "ItemCount"]
+plural_placeholder: "Quantity"
 
 # messages/inventory.yaml
 StockMessage:

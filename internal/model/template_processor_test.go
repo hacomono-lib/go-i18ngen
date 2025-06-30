@@ -16,13 +16,13 @@ type TemplateProcessorTestSuite struct {
 
 func (s *TemplateProcessorTestSuite) SetupSuite() {
 	s.testConfig = &config.Config{
-		Locales:            []string{"ja", "en"},
-		Compound:           true,
-		MessagesGlob:       "./messages/*.yaml",
-		PlaceholdersGlob:   "./placeholders/*.yaml",
-		OutputDir:          "./",
-		OutputPackage:      "i18n",
-		PluralPlaceholders: []string{"Count", "Number", "Num", "Total", "Amount", "Quantity", "Size"},
+		Locales:           []string{"ja", "en"},
+		Compound:          true,
+		MessagesGlob:      "./messages/*.yaml",
+		PlaceholdersGlob:  "./placeholders/*.yaml",
+		OutputDir:         "./",
+		OutputPackage:     "i18n",
+		PluralPlaceholder: "Count",
 	}
 }
 

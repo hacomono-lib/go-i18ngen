@@ -95,6 +95,36 @@ func localizeWithFields(messageID, locale string, fields map[string]string) stri
 	return localizeMessage(messageID, buildTemplateData(messageID, locale, fields), locale)
 }
 
+// localizeWithConfig is a helper function for standard localization with i18n.LocalizeConfig
+func localizeWithConfig(messageID, locale string, templateData map[string]interface{}, pluralCount *int, pluralKey string) string {
+	config := &i18n.LocalizeConfig{
+		MessageID:    messageID,
+		TemplateData: templateData,
+	}
+	
+	if pluralCount != nil {
+		config.PluralCount = *pluralCount
+		// Add the actual plural placeholder key to TemplateData for template access
+		if pluralKey != "" {
+			templateData[pluralKey] = *pluralCount
+			
+			// Also add case variations if different from original
+			lowercaseKey := strings.ToLower(pluralKey)
+			if lowercaseKey != pluralKey {
+				templateData[lowercaseKey] = *pluralCount
+			}
+			
+			uppercaseKey := strings.ToUpper(pluralKey)
+			if uppercaseKey != pluralKey {
+				templateData[uppercaseKey] = *pluralCount
+			}
+		}
+	}
+	
+	localizer := getLocalizer(locale)
+	return localizer.MustLocalize(config)
+}
+
 // buildTemplateData constructs template data with template function processing
 func buildTemplateData(messageID, locale string, fields map[string]string) map[string]interface{} {
 	result := make(map[string]interface{}, len(fields)) // Pre-allocate capacity
@@ -301,20 +331,11 @@ func (m {{$msg.StructName}}) Localize(locale string) string {
 {{- end}}
 	})
 	
-	config := &i18n.LocalizeConfig{
-		MessageID: "{{$msg.ID}}",
-		TemplateData: templateData,
-	}
-	
 	{{- if .SupportsCount}}
-	if m.count != nil {
-		config.PluralCount = *m.count
-		config.TemplateData["Count"] = *m.count
-	}
+	return localizeWithConfig("{{$msg.ID}}", locale, templateData, m.count, "{{.PluralPlaceholder}}")
+	{{- else}}
+	return localizeWithConfig("{{$msg.ID}}", locale, templateData, nil, "")
 	{{- end}}
-	
-	localizer := getLocalizer(locale)
-	return localizer.MustLocalize(config)
 }
 
 func (m {{$msg.StructName}}) ID() string {

@@ -25,75 +25,59 @@ func (s *ConfigTestSuite) TestIsPluralPlaceholder() {
 		expected    bool
 	}{
 		{
-			name: "default plural placeholders - exact match",
+			name: "default plural placeholder - exact match",
 			config: &Config{
-				PluralPlaceholders: []string{"Count", "Number", "Total"},
+				PluralPlaceholder: "", // Should use default "Count"
 			},
 			placeholder: "Count",
 			expected:    true,
 		},
 		{
-			name: "default plural placeholders - case insensitive",
+			name: "default plural placeholder - case insensitive",
 			config: &Config{
-				PluralPlaceholders: []string{"Count", "Number", "Total"},
+				PluralPlaceholder: "",
 			},
 			placeholder: "count",
 			expected:    true,
 		},
 		{
-			name: "default plural placeholders - uppercase",
+			name: "default plural placeholder - uppercase",
 			config: &Config{
-				PluralPlaceholders: []string{"Count", "Number", "Total"},
+				PluralPlaceholder: "",
 			},
 			placeholder: "COUNT",
 			expected:    true,
 		},
 		{
-			name: "non-plural placeholder",
+			name: "non-plural placeholder with default",
 			config: &Config{
-				PluralPlaceholders: []string{"Count", "Number", "Total"},
+				PluralPlaceholder: "",
 			},
 			placeholder: "Name",
 			expected:    false,
 		},
 		{
-			name: "empty config uses defaults",
+			name: "custom plural placeholder",
 			config: &Config{
-				PluralPlaceholders: []string{}, // Empty, should use defaults
-			},
-			placeholder: "Count",
-			expected:    true,
-		},
-		{
-			name: "nil config uses defaults",
-			config: &Config{
-				PluralPlaceholders: nil, // Nil, should use defaults
-			},
-			placeholder: "Count",
-			expected:    true,
-		},
-		{
-			name: "custom plural placeholders",
-			config: &Config{
-				PluralPlaceholders: []string{"CustomCount", "Items"},
+				PluralPlaceholder: "CustomCount",
 			},
 			placeholder: "CustomCount",
 			expected:    true,
 		},
 		{
-			name: "custom plural placeholders - case insensitive",
+			name: "custom plural placeholder - case insensitive",
 			config: &Config{
-				PluralPlaceholders: []string{"CustomCount", "Items"},
+				PluralPlaceholder: "CustomCount",
 			},
 			placeholder: "customcount",
 			expected:    true,
 		},
 		{
-			name: "default not in custom list",
+			name: "default not matching custom",
 			config: &Config{
-				PluralPlaceholders: []string{"CustomCount", "Items"},
+				PluralPlaceholder: "CustomCount",
 			},
-			placeholder: "Count", // Default, but not in custom list
+			placeholder: "Count", // Default, but not the custom one
 			expected:    false,
 		},
 	}
@@ -106,84 +90,50 @@ func (s *ConfigTestSuite) TestIsPluralPlaceholder() {
 	}
 }
 
-func (s *ConfigTestSuite) TestGetPluralPlaceholders() {
+func (s *ConfigTestSuite) TestGetPluralPlaceholder() {
 	tests := []struct {
 		name     string
 		config   *Config
-		expected []string
+		expected string
 	}{
 		{
-			name: "default plural placeholders",
+			name: "default plural placeholder",
 			config: &Config{
-				PluralPlaceholders: []string{},
+				PluralPlaceholder: "",
 			},
-			expected: []string{
-				"Count", "count",
-			},
+			expected: "Count",
 		},
 		{
-			name: "custom plural placeholders",
+			name: "custom plural placeholder",
 			config: &Config{
-				PluralPlaceholders: []string{"Items", "Records"},
+				PluralPlaceholder: "CustomCount",
 			},
-			expected: []string{
-				"Items", "items",
-				"Records", "records",
-			},
+			expected: "CustomCount",
 		},
 		{
-			name: "mixed case custom placeholders",
+			name: "empty string placeholder",
 			config: &Config{
-				PluralPlaceholders: []string{"Count", "itemCount"},
+				PluralPlaceholder: "",
 			},
-			expected: []string{
-				"Count", "count",
-				"itemCount",
-			},
-		},
-		{
-			name: "nil config uses defaults",
-			config: &Config{
-				PluralPlaceholders: []string{},
-			},
-			expected: []string{
-				"Count", "count",
-			},
+			expected: "Count", // Should return default when empty
 		},
 	}
 
 	for _, tt := range tests {
 		s.Run(tt.name, func() {
-			result := tt.config.GetPluralPlaceholders()
-
-			// Check that all expected placeholders are present
-			for _, expected := range tt.expected {
-				s.Contains(result, expected, "Expected placeholder %q not found", expected)
-			}
-
-			// For default config, check that we have the right number
-			if len(tt.config.PluralPlaceholders) == 0 {
-				// Should have Count + count (case variations)
-				s.GreaterOrEqual(len(result), len(tt.expected), "Should have at least expected number of placeholders")
-			}
+			result := tt.config.GetPluralPlaceholder()
+			s.Equal(tt.expected, result)
 		})
 	}
 }
 
-func (s *ConfigTestSuite) TestGetDefaultPluralPlaceholders() {
-	defaults := getDefaultPluralPlaceholders()
-
-	expected := []string{"Count"}
-	s.Equal(expected, defaults)
-}
-
-func (s *ConfigTestSuite) TestLoadConfigWithPluralPlaceholders() {
+func (s *ConfigTestSuite) TestLoadConfigWithPluralPlaceholder() {
 	// Create a temporary config file
 	configPath := filepath.Join(s.tempDir, "config.yaml")
 
 	configContent := `
 locales: ["en", "ja"]
-plural_placeholders: ["Count", "Number", "CustomTotal"]
+plural_placeholder: "CustomTotal"
 `
 
 	err := os.WriteFile(configPath, []byte(configContent), 0644)
@@ -193,17 +143,15 @@ plural_placeholders: ["Count", "Number", "CustomTotal"]
 	config, err := LoadConfig(configPath)
 	s.Require().NoError(err)
 
-	// Verify plural placeholders are loaded correctly
-	s.Equal([]string{"Count", "Number", "CustomTotal"}, config.PluralPlaceholders)
-	s.True(config.IsPluralPlaceholder("Count"))
-	s.True(config.IsPluralPlaceholder("count"))
+	// Verify plural placeholder is loaded correctly
+	s.Equal("CustomTotal", config.GetPluralPlaceholder())
 	s.True(config.IsPluralPlaceholder("CustomTotal"))
 	s.True(config.IsPluralPlaceholder("customtotal"))
-	s.False(config.IsPluralPlaceholder("Amount")) // Not in custom list
+	s.False(config.IsPluralPlaceholder("Count")) // Not the custom one
 }
 
-func (s *ConfigTestSuite) TestLoadConfigWithoutPluralPlaceholders() {
-	// Create a temporary config file without plural_placeholders
+func (s *ConfigTestSuite) TestLoadConfigWithoutPluralPlaceholder() {
+	// Create a temporary config file without plural_placeholder
 	configPath := filepath.Join(s.tempDir, "config.yaml")
 
 	configContent := `
@@ -217,26 +165,8 @@ locales: ["en", "ja"]
 	config, err := LoadConfig(configPath)
 	s.Require().NoError(err)
 
-	// Verify default plural placeholders are used
-	s.Equal(getDefaultPluralPlaceholders(), config.PluralPlaceholders)
-	s.True(config.IsPluralPlaceholder("Count"))
-	s.True(config.IsPluralPlaceholder("count"))
-}
-
-func (s *ConfigTestSuite) TestLoadConfigWithEmptyPluralPlaceholders() {
-	configPath := filepath.Join(s.tempDir, "config_empty.yaml")
-	configContent := `
-locales: ["en", "ja"]
-plural_placeholders: []
-`
-
-	err := os.WriteFile(configPath, []byte(configContent), 0644)
-	s.Require().NoError(err)
-
-	config, err := LoadConfig(configPath)
-	s.Require().NoError(err)
-
-	// Empty list should trigger default behavior
+	// Verify default plural placeholder is used
+	s.Equal("Count", config.GetPluralPlaceholder())
 	s.True(config.IsPluralPlaceholder("Count"))
 	s.True(config.IsPluralPlaceholder("count"))
 }
@@ -313,7 +243,7 @@ messages: "` + absPath + `"
 
 func (s *ConfigTestSuite) TestPluralPlaceholderEdgeCases() {
 	config := &Config{
-		PluralPlaceholders: []string{"Count", "Number"},
+		PluralPlaceholder: "Count",
 	}
 
 	// Test empty string
