@@ -49,18 +49,32 @@ jobs:
     - name: Generate release notes
       id: release_notes
       run: |
-        {
-          echo 'RELEASE_NOTES<<EOL'
-          echo '## Installation'
-          echo ''
-          echo '```bash'
-          echo 'go install github.com/hacomono-lib/go-i18ngen@${{ github.ref_name }}'
-          echo '```'
-          echo ''
-          echo "## What's Changed"
-          git log --pretty=format:"- %s" $(git describe --tags --abbrev=0 HEAD~1)..HEAD
-          echo 'EOL'
-        } >> $GITHUB_OUTPUT
+        # Extract version from tag
+        VERSION=${GITHUB_REF#refs/tags/}
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        
+        # Generate changelog from git log since last tag
+        PREV_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
+        if [ -n "$PREV_TAG" ]; then
+          CHANGELOG=$(git log --pretty=format:"- %s" $PREV_TAG..HEAD)
+        else
+          CHANGELOG=$(git log --pretty=format:"- %s")
+        fi
+        
+        # Create release notes
+        cat > RELEASE_NOTES.md << EOF
+        ## Installation
+        \`\`\`bash
+        go install github.com/hacomono-lib/go-i18ngen@$VERSION
+        \`\`\`
+        
+        ## What's Changed
+        $CHANGELOG
+        EOF
+        
+        echo "release_notes<<EOF" >> $GITHUB_OUTPUT
+        cat RELEASE_NOTES.md >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
     
     - name: Create or Update Release
       run: |
@@ -71,7 +85,7 @@ jobs:
           echo "Creating new release ${{ github.ref_name }}..."
           gh release create ${{ github.ref_name }} \
             --title "${{ github.ref_name }}" \
-            --notes "${{ steps.release_notes.outputs.RELEASE_NOTES }}" \
+            --notes "${{ steps.release_notes.outputs.release_notes }}" \
             dist/*
         fi
       env:
