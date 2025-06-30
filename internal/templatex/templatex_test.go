@@ -504,31 +504,31 @@ func (s *TemplatexTestSuite) TestFormatPluralTemplateFunction() {
 func (s *TemplatexTestSuite) TestRenderTemplateWithConfigErrors() {
 	// Test error cases for RenderTemplateWithConfig
 	tests := []struct {
-		name         string
-		tmplContent  string
-		data         interface{}
-		expectError  bool
+		name          string
+		tmplContent   string
+		data          interface{}
+		expectError   bool
 		errorContains string
 	}{
 		{
-			name:         "template parse error",
-			tmplContent:  "{{.invalid syntax",
-			data:         map[string]string{},
-			expectError:  true,
+			name:          "template parse error",
+			tmplContent:   "{{.invalid syntax",
+			data:          map[string]string{},
+			expectError:   true,
 			errorContains: "failed to parse Go template",
 		},
 		{
-			name:         "template execution error",
-			tmplContent:  "package test\n{{call .nonexistent}}",
-			data:         map[string]string{},
-			expectError:  true,
+			name:          "template execution error",
+			tmplContent:   "package test\n{{call .nonexistent}}",
+			data:          map[string]string{},
+			expectError:   true,
 			errorContains: "failed to execute Go template",
 		},
 		{
-			name:         "invalid Go code generation",
-			tmplContent:  "package test\nfunc { invalid syntax }",
-			data:         map[string]string{},
-			expectError:  true,
+			name:          "invalid Go code generation",
+			tmplContent:   "package test\nfunc { invalid syntax }",
+			data:          map[string]string{},
+			expectError:   true,
 			errorContains: "failed to format generated Go code",
 		},
 	}

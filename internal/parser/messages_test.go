@@ -427,8 +427,8 @@ func (s *ParserTestSuite) TestConvertPluralToTemplate() {
 			expected: "{{.Count}} few items",
 		},
 		{
-			name: "empty map",
-			input: map[string]interface{}{},
+			name:     "empty map",
+			input:    map[string]interface{}{},
 			expected: "{{.Count}} items", // fallback
 		},
 		{
@@ -560,14 +560,14 @@ func (s *ParserTestSuite) TestDecodeFileErrors() {
 
 	file, err := os.Open(tempFile)
 	s.Require().NoError(err)
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	// Test decodeCompoundFile with invalid JSON
 	_, err = decodeCompoundFile(file, ".json")
 	s.Error(err, "Should error on invalid JSON")
 
 	// Reset file pointer
-	file.Seek(0, 0)
+	_, _ = file.Seek(0, 0)
 
 	// Test decodeSimpleFile with invalid JSON
 	_, err = decodeSimpleFile(file, ".json")
@@ -586,7 +586,7 @@ func (s *ParserTestSuite) TestDecodeValidFiles() {
 
 	file, err := os.Open(compoundFile)
 	s.Require().NoError(err)
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	result, err := decodeCompoundFile(file, ".json")
 	s.NoError(err)
@@ -601,7 +601,7 @@ item2: "Simple Item 2"`
 
 	file2, err := os.Open(simpleFile)
 	s.Require().NoError(err)
-	defer file2.Close()
+	defer func() { _ = file2.Close() }()
 
 	result2, err := decodeSimpleFile(file2, ".yaml")
 	s.NoError(err)
