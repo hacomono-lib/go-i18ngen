@@ -108,10 +108,12 @@ func buildTemplateData(messageID, locale string, fields map[string]string) map[s
 
 // processField applies template functions to a field value
 func processField(value, messageID, fieldName, locale string) string {
-	if functions, exists := templateFunctions[messageID]; exists {
-		if localeFunctions, exists := functions[locale]; exists {
-			if fieldFunctions, exists := localeFunctions[fieldName]; exists {
-				return applyTemplateFunctions(value, fieldFunctions)
+	if templateFunctions != nil {
+		if functions, exists := templateFunctions[messageID]; exists {
+			if localeFunctions, exists := functions[locale]; exists {
+				if fieldFunctions, exists := localeFunctions[fieldName]; exists {
+					return applyTemplateFunctions(value, fieldFunctions)
+				}
 			}
 		}
 	}
@@ -145,7 +147,7 @@ func applyTemplateFunctions(value string, functions []string) string {
 }
 
 // Template function metadata
-var templateFunctions = map[string]map[string]map[string][]string{
+var templateFunctions = {{if .TemplateFunctions}}map[string]map[string]map[string][]string{
 {{- range $msgID, $localeMap := .TemplateFunctions}}
 	"{{$msgID}}": {
 		{{- range $locale, $fieldMap := $localeMap}}
@@ -157,7 +159,7 @@ var templateFunctions = map[string]map[string]map[string][]string{
 		{{- end}}
 	},
 {{- end}}
-}
+}{{else}}map[string]map[string]map[string][]string(nil){{end}}
 
 // Localizable interface for all i18n types
 type Localizable interface {
@@ -214,10 +216,24 @@ func (p {{.StructName}}) ID() string {
 {{- end}}
 
 {{- if not .IsValue}}
-// {{.StructName}}s provides utility access to {{.StructName}} instances
+// {{.StructName}}s provides utility access to {{.StructName}} instances.
+//
+// This utility struct contains pre-defined instances for common use cases.
+// Each field provides access to localized text values.
+//
+// Available instances:
+{{- range .Items}}
+//   - {{.FieldName}}: "{{.ID}}"
+{{- end}}
 var {{.StructName}}s = struct {
 {{- $structName := .StructName}}
 {{- range $item := .Items}}
+	// {{$item.FieldName}} represents "{{$item.ID}}"
+	//
+	// Localized values:
+	{{- range $locale, $value := $item.Templates}}
+	//   • [{{$locale}}] "{{$value}}"
+	{{- end}}
 	{{$item.FieldName}} {{$structName}}
 {{- end}}
 }{

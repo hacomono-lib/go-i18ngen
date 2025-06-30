@@ -275,11 +275,10 @@ func RenderGoI18nWithConfig(
 	locales []string,
 	config *TemplateConfig,
 ) error {
-	// Build template functions metadata - empty for backward compatibility
-	templateFunctions := make(map[string]map[string]map[string][]string)
+	// Pass nil templateFunctions to avoid unnecessary memory allocation
 	return RenderGoI18nWithConfigAndTemplateFunctions(
 		outPath, pkg, primaryLocale, messages, placeholders,
-		placeholderDefs, messageDefs, locales, templateFunctions, config,
+		placeholderDefs, messageDefs, locales, nil, config,
 	)
 }
 
