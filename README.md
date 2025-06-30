@@ -50,7 +50,7 @@ Create `config.yaml`:
 
 ```yaml
 compound: true
-locales: [ja, en]
+locales: [ja, en]              # ja is default language, en is secondary
 messages: "./messages/*.yaml"
 placeholders: "./placeholders/*.yaml"
 output_dir: "./"
@@ -139,7 +139,7 @@ func main() {
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `compound` | bool | Yes | Use compound format (multiple locales per file) |
-| `locales` | []string | Yes | Supported locales (first is primary/fallback) |
+| `locales` | []string | Yes | Supported locales (first is default language for go-i18n bundle) |
 | `messages` | string | Yes | Glob pattern for message files |
 | `placeholders` | string | Yes | Glob pattern for placeholder files |
 | `output_dir` | string | Yes | Output directory for generated code |
@@ -149,9 +149,17 @@ func main() {
 ### Example Configuration
 
 ```yaml
-# Basic configuration
+# Japanese-first project (日本語がデフォルト言語)
 compound: true
-locales: [ja, en, fr]
+locales: [ja, en, fr]        # ja is default language for go-i18n bundle
+messages: "./locales/messages/*.yaml"
+placeholders: "./locales/placeholders/*.yaml"
+output_dir: "./internal/i18n"
+output_package: "i18n"
+
+# English-first project (English is default language)
+compound: true
+locales: [en, ja, fr]        # en is default language for go-i18n bundle
 messages: "./locales/messages/*.yaml"
 placeholders: "./locales/placeholders/*.yaml"
 output_dir: "./internal/i18n"
@@ -353,7 +361,7 @@ func NewEntityNotFound(entity EntityText, reason ReasonText) EntityNotFound {
 // Localization method
 func (m EntityNotFound) Localize(locale string) string {
     // Uses go-i18n for CLDR-compliant localization
-    // Automatic fallback to primary locale if requested locale not found
+    // Automatic fallback to default locale (first in config) if requested locale not found
 }
 
 // Interface compliance

@@ -42,7 +42,7 @@ var placeholderData = map[string]map[string]string{
 }
 
 func init() {
-	bundle = i18n.NewBundle(language.English)
+	bundle = i18n.NewBundle(language.Make("{{.PrimaryLocale}}"))
 	bundle.RegisterUnmarshalFunc("yaml", yaml.Unmarshal)
 	
 	// Load messages from embedded data
