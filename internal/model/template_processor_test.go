@@ -552,13 +552,11 @@ func (s *TemplateProcessorTestSuite) TestBuildTemplateFunctionsMetadata() {
 				"field":  {"title"},
 				"status": {"upper"},
 			},
-			"ja": {},
 		},
 		"TransferMessage": {
 			"en": {
 				"entityFrom": {"title"},
 			},
-			"ja": {},
 		},
 	}
 

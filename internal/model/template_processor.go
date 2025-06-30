@@ -136,22 +136,33 @@ func BuildTemplateFunctionsMetadata(messages []MessageSource, locales []string) 
 	metadata := make(map[string]map[string]map[string][]string)
 
 	for _, msg := range messages {
-		metadata[msg.ID] = make(map[string]map[string][]string)
+		var msgHasFunctions bool
 
 		for _, locale := range locales {
-			metadata[msg.ID][locale] = make(map[string][]string)
-
 			template, exists := msg.Templates[locale]
 			if !exists {
 				continue
 			}
 
+			var localeHasFunctions bool
+			localeFunctions := make(map[string][]string)
+
 			// Extract template functions for each field
 			for _, fieldInfo := range msg.FieldInfos {
 				functions := extractTemplateFunctionsFromTemplate(template, fieldInfo)
 				if len(functions) > 0 {
-					metadata[msg.ID][locale][fieldInfo.GenerateTemplateKey()] = functions
+					localeFunctions[fieldInfo.GenerateTemplateKey()] = functions
+					localeHasFunctions = true
 				}
+			}
+
+			// Only create nested maps if there are actual functions
+			if localeHasFunctions {
+				if !msgHasFunctions {
+					metadata[msg.ID] = make(map[string]map[string][]string)
+					msgHasFunctions = true
+				}
+				metadata[msg.ID][locale] = localeFunctions
 			}
 		}
 	}
