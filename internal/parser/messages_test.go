@@ -329,6 +329,286 @@ func (s *ParserTestSuite) findMessageByID(messages []model.MessageSource, id str
 	return nil
 }
 
+func (s *ParserTestSuite) TestConvertMixedToStringMap() {
+	// Test for convertMixedToStringMap function coverage
+	tests := []struct {
+		name     string
+		input    map[string]map[string]interface{}
+		expected map[string]map[string]string
+	}{
+		{
+			name: "simple string templates",
+			input: map[string]map[string]interface{}{
+				"SimpleMessage": {
+					"en": "Hello {{.name}}",
+					"ja": "こんにちは {{.name}}",
+				},
+			},
+			expected: map[string]map[string]string{
+				"SimpleMessage": {
+					"en": "Hello {{.name}}",
+					"ja": "こんにちは {{.name}}",
+				},
+			},
+		},
+		{
+			name: "plural templates",
+			input: map[string]map[string]interface{}{
+				"CountMessage": {
+					"en": map[string]interface{}{
+						"one":   "{{.Count}} item",
+						"other": "{{.Count}} items",
+					},
+					"ja": "{{.Count}}個のアイテム",
+				},
+			},
+			expected: map[string]map[string]string{
+				"CountMessage": {
+					"en": "{{.Count}} items", // Should use "other" form
+					"ja": "{{.Count}}個のアイテム",
+				},
+			},
+		},
+		{
+			name: "mixed interface types",
+			input: map[string]map[string]interface{}{
+				"MixedMessage": {
+					"en": map[interface{}]interface{}{
+						"one":   "One item",
+						"other": "{{.Count}} items",
+					},
+					"ja": 123, // Non-string fallback
+				},
+			},
+			expected: map[string]map[string]string{
+				"MixedMessage": {
+					"en": "{{.Count}} items",
+					"ja": "123",
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			result := convertMixedToStringMap(tt.input)
+			s.Equal(tt.expected, result)
+		})
+	}
+}
+
+func (s *ParserTestSuite) TestConvertPluralToTemplate() {
+	// Test for convertPluralToTemplate function coverage
+	tests := []struct {
+		name     string
+		input    map[string]interface{}
+		expected string
+	}{
+		{
+			name: "has other form",
+			input: map[string]interface{}{
+				"one":   "{{.Count}} item",
+				"other": "{{.Count}} items",
+			},
+			expected: "{{.Count}} items",
+		},
+		{
+			name: "has one form only",
+			input: map[string]interface{}{
+				"one": "{{.Count}} item",
+			},
+			expected: "{{.Count}} item",
+		},
+		{
+			name: "has few form only",
+			input: map[string]interface{}{
+				"few": "{{.Count}} few items",
+			},
+			expected: "{{.Count}} few items",
+		},
+		{
+			name: "empty map",
+			input: map[string]interface{}{},
+			expected: "{{.Count}} items", // fallback
+		},
+		{
+			name: "non-string values",
+			input: map[string]interface{}{
+				"other": 123,
+			},
+			expected: "{{.Count}} items", // fallback when conversion fails
+		},
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			result := convertPluralToTemplate(tt.input)
+			s.Equal(tt.expected, result)
+		})
+	}
+}
+
+func (s *ParserTestSuite) TestIsValidGoIdentifier() {
+	// Test for isValidGoIdentifier function coverage
+	tests := []struct {
+		name     string
+		input    string
+		expected bool
+	}{
+		{
+			name:     "valid identifier",
+			input:    "validName",
+			expected: true,
+		},
+		{
+			name:     "valid identifier with underscore",
+			input:    "valid_name",
+			expected: true,
+		},
+		{
+			name:     "valid identifier starting with underscore",
+			input:    "_validName",
+			expected: true,
+		},
+		{
+			name:     "invalid - empty string",
+			input:    "",
+			expected: false,
+		},
+		{
+			name:     "invalid - starts with number",
+			input:    "123invalid",
+			expected: false,
+		},
+		{
+			name:     "invalid - contains space",
+			input:    "invalid name",
+			expected: false,
+		},
+		{
+			name:     "invalid - contains hyphen",
+			input:    "invalid-name",
+			expected: false,
+		},
+		{
+			name:     "invalid - contains special characters",
+			input:    "invalid@name",
+			expected: false,
+		},
+		{
+			name:     "valid with numbers",
+			input:    "valid123",
+			expected: true,
+		},
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			result := isValidGoIdentifier(tt.input)
+			s.Equal(tt.expected, result)
+		})
+	}
+}
+
+func (s *ParserTestSuite) TestDetectLocaleEdgeCases() {
+	// Test for detectLocale function coverage
+	tests := []struct {
+		name     string
+		filename string
+		expected string
+	}{
+		{
+			name:     "normal filename",
+			filename: "field.en.yaml",
+			expected: "en",
+		},
+		{
+			name:     "filename with multiple dots",
+			filename: "field.en.test.yaml",
+			expected: "en",
+		},
+		{
+			name:     "filename with no locale part",
+			filename: "field.yaml",
+			expected: "yaml",
+		},
+		{
+			name:     "filename with single part",
+			filename: "field",
+			expected: "unknown",
+		},
+		{
+			name:     "empty filename",
+			filename: "",
+			expected: "unknown",
+		},
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			result := detectLocale(tt.filename)
+			s.Equal(tt.expected, result)
+		})
+	}
+}
+
+func (s *ParserTestSuite) TestDecodeFileErrors() {
+	// Test error cases for decode functions
+	tempFile := filepath.Join(s.tempDir, "invalid.json")
+	invalidJSONContent := `{"invalid": "json", "unclosed": [`
+	s.Require().NoError(os.WriteFile(tempFile, []byte(invalidJSONContent), 0644))
+
+	file, err := os.Open(tempFile)
+	s.Require().NoError(err)
+	defer file.Close()
+
+	// Test decodeCompoundFile with invalid JSON
+	_, err = decodeCompoundFile(file, ".json")
+	s.Error(err, "Should error on invalid JSON")
+
+	// Reset file pointer
+	file.Seek(0, 0)
+
+	// Test decodeSimpleFile with invalid JSON
+	_, err = decodeSimpleFile(file, ".json")
+	s.Error(err, "Should error on invalid JSON")
+}
+
+func (s *ParserTestSuite) TestDecodeValidFiles() {
+	// Test valid file decoding
+	// Create valid compound JSON file
+	compoundFile := filepath.Join(s.tempDir, "compound.json")
+	compoundContent := `{
+		"item1": {"en": "Item 1", "ja": "アイテム1"},
+		"item2": {"en": "Item 2", "ja": "アイテム2"}
+	}`
+	s.Require().NoError(os.WriteFile(compoundFile, []byte(compoundContent), 0644))
+
+	file, err := os.Open(compoundFile)
+	s.Require().NoError(err)
+	defer file.Close()
+
+	result, err := decodeCompoundFile(file, ".json")
+	s.NoError(err)
+	s.Equal("Item 1", result["item1"]["en"])
+	s.Equal("アイテム1", result["item1"]["ja"])
+
+	// Create valid simple YAML file
+	simpleFile := filepath.Join(s.tempDir, "simple.yaml")
+	simpleContent := `item1: "Simple Item 1"
+item2: "Simple Item 2"`
+	s.Require().NoError(os.WriteFile(simpleFile, []byte(simpleContent), 0644))
+
+	file2, err := os.Open(simpleFile)
+	s.Require().NoError(err)
+	defer file2.Close()
+
+	result2, err := decodeSimpleFile(file2, ".yaml")
+	s.NoError(err)
+	s.Equal("Simple Item 1", result2["item1"])
+	s.Equal("Simple Item 2", result2["item2"])
+}
+
 // Run the test suite
 func TestParserSuite(t *testing.T) {
 	suite.Run(t, new(ParserTestSuite))

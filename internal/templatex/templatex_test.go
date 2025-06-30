@@ -404,3 +404,144 @@ func (s *TemplatexTestSuite) TestSafeIdentFunction() {
 		s.Equal(tt.expected, result, "safeIdent(%s)", tt.input)
 	}
 }
+
+func (s *TemplatexTestSuite) TestTemplateFunctionEdgeCases() {
+	// Test edge cases for template functions to improve coverage
+	tests := []struct {
+		name     string
+		template string
+		data     interface{}
+		expected string
+	}{
+		{
+			name:     "titleFunc with empty string",
+			template: `{{.value | title}}`,
+			data:     map[string]string{"value": ""},
+			expected: "",
+		},
+		{
+			name:     "capitalizeFunc with empty string",
+			template: `{{.value | capitalize}}`,
+			data:     map[string]string{"value": ""},
+			expected: "",
+		},
+		{
+			name:     "camelCase with empty parts",
+			template: `{{.value | camelCase}}`,
+			data:     map[string]string{"value": "hello__world"},
+			expected: "helloWorld",
+		},
+		{
+			name:     "lastKey with empty map",
+			template: `{{lastKey .templates}}`,
+			data:     map[string]interface{}{"templates": map[string]string{}},
+			expected: "",
+		},
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			result, err := executeTemplateDirectly(tt.template, tt.data)
+			s.NoError(err)
+			s.Equal(tt.expected, strings.TrimSpace(result))
+		})
+	}
+}
+
+func (s *TemplatexTestSuite) TestFormatPluralTemplateFunction() {
+	// Test formatPluralTemplate function coverage
+	funcMap := CreateFuncMap()
+	formatPluralFunc := funcMap["formatPluralTemplate"]
+
+	tests := []struct {
+		name     string
+		input    interface{}
+		expected string
+	}{
+		{
+			name:     "string input",
+			input:    "Hello {{.name}}",
+			expected: `"Hello {{.name}}"`,
+		},
+		{
+			name: "map[string]interface{} with single form",
+			input: map[string]interface{}{
+				"other": "{{.Count}} items",
+			},
+			expected: `{other: "{{.Count}} items"}`,
+		},
+		{
+			name: "map[string]interface{} with multiple forms",
+			input: map[string]interface{}{
+				"one":   "{{.Count}} item",
+				"other": "{{.Count}} items",
+			},
+			expected: `{` + "\n" + `//       one: "{{.Count}} item",` + "\n" + `//       other: "{{.Count}} items"` + "\n" + `//     }`,
+		},
+		{
+			name: "map[interface{}]interface{} input",
+			input: map[interface{}]interface{}{
+				"one":   "{{.Count}} item",
+				"other": "{{.Count}} items",
+			},
+			expected: `{` + "\n" + `//       one: "{{.Count}} item",` + "\n" + `//       other: "{{.Count}} items"` + "\n" + `//     }`,
+		},
+		{
+			name:     "non-string, non-map input",
+			input:    123,
+			expected: `"123"`,
+		},
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			result := formatPluralFunc.(func(interface{}) string)(tt.input)
+			s.Equal(tt.expected, result)
+		})
+	}
+}
+
+func (s *TemplatexTestSuite) TestRenderTemplateWithConfigErrors() {
+	// Test error cases for RenderTemplateWithConfig
+	tests := []struct {
+		name         string
+		tmplContent  string
+		data         interface{}
+		expectError  bool
+		errorContains string
+	}{
+		{
+			name:         "template parse error",
+			tmplContent:  "{{.invalid syntax",
+			data:         map[string]string{},
+			expectError:  true,
+			errorContains: "failed to parse Go template",
+		},
+		{
+			name:         "template execution error",
+			tmplContent:  "package test\n{{call .nonexistent}}",
+			data:         map[string]string{},
+			expectError:  true,
+			errorContains: "failed to execute Go template",
+		},
+		{
+			name:         "invalid Go code generation",
+			tmplContent:  "package test\nfunc { invalid syntax }",
+			data:         map[string]string{},
+			expectError:  true,
+			errorContains: "failed to format generated Go code",
+		},
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			_, err := RenderTemplateWithConfig(tt.tmplContent, tt.data, nil)
+			if tt.expectError {
+				s.Error(err)
+				s.Contains(err.Error(), tt.errorContains)
+			} else {
+				s.NoError(err)
+			}
+		})
+	}
+}
