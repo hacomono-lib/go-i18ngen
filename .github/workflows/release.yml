@@ -49,16 +49,18 @@ jobs:
     - name: Generate release notes
       id: release_notes
       run: |
-        echo 'RELEASE_NOTES<<EOF' >> $GITHUB_OUTPUT
-        echo '## Installation' >> $GITHUB_OUTPUT
-        echo '' >> $GITHUB_OUTPUT
-        echo '```bash' >> $GITHUB_OUTPUT
-                 echo 'go install github.com/hacomono-lib/go-i18ngen@${{ github.ref_name }}' >> $GITHUB_OUTPUT
-        echo '```' >> $GITHUB_OUTPUT
-        echo '' >> $GITHUB_OUTPUT
-        echo '## What'\''s Changed' >> $GITHUB_OUTPUT
-        git log --pretty=format:"- %s" $(git describe --tags --abbrev=0 HEAD~1)..HEAD >> $GITHUB_OUTPUT
-        echo 'EOF' >> $GITHUB_OUTPUT
+        {
+          echo 'RELEASE_NOTES<<EOL'
+          echo '## Installation'
+          echo ''
+          echo '```bash'
+          echo 'go install github.com/hacomono-lib/go-i18ngen@${{ github.ref_name }}'
+          echo '```'
+          echo ''
+          echo "## What's Changed"
+          git log --pretty=format:"- %s" $(git describe --tags --abbrev=0 HEAD~1)..HEAD
+          echo 'EOL'
+        } >> $GITHUB_OUTPUT
     
     - name: Create or Update Release
       run: |
