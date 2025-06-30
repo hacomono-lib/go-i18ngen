@@ -118,10 +118,10 @@ func Run(cfg *config.Config) (returnErr error) {
 
 	// Generate i18n file
 	outputFile := filepath.Join(cfg.OutputDir, "i18n.gen.go")
-	
+
 	// Build template functions metadata
 	templateFunctions := model.BuildTemplateFunctionsMetadata(messages, cfg.Locales)
-	
+
 	// Generate go-i18n code
 	if err := templatex.RenderGoI18nWithTemplateFunctions(
 		outputFile,

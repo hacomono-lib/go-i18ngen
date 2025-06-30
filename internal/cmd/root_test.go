@@ -21,7 +21,7 @@ func TestRootCommand(t *testing.T) {
 	// Since Execute() sets up the root command, we test indirectly
 	cmd := NewGenerateCommand()
 	assert.NotNil(t, cmd, "Should be able to create generate command")
-	
+
 	// Test that the command has expected properties
 	assert.Equal(t, "generate", cmd.Use)
 	assert.NotEmpty(t, cmd.Short)

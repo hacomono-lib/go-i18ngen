@@ -255,7 +255,7 @@ func decodeMessageFileWithRaw(file *os.File, ext string) (*MessageFileData, erro
 	} else {
 		if yamlErr := yaml.Unmarshal(content, &compoundData); yamlErr == nil {
 			result.Templates = compoundData
-			// Convert to interface{} for raw templates  
+			// Convert to interface{} for raw templates
 			for msgID, localeMap := range compoundData {
 				result.RawTemplates[msgID] = make(map[string]interface{})
 				for locale, template := range localeMap {
@@ -305,14 +305,13 @@ func decodeMessageFileWithRaw(file *os.File, ext string) (*MessageFileData, erro
 	return result, nil
 }
 
-
 // convertMixedToStringMap converts mixed format (string or pluralization object) to string-only format
 func convertMixedToStringMap(mixedData map[string]map[string]interface{}) map[string]map[string]string {
 	result := make(map[string]map[string]string)
-	
+
 	for messageID, localeData := range mixedData {
 		result[messageID] = make(map[string]string)
-		
+
 		for locale, value := range localeData {
 			switch v := value.(type) {
 			case string:
@@ -336,7 +335,7 @@ func convertMixedToStringMap(mixedData map[string]map[string]interface{}) map[st
 			}
 		}
 	}
-	
+
 	return result
 }
 
@@ -348,19 +347,19 @@ func convertPluralToTemplate(pluralMap map[string]interface{}) string {
 			return str
 		}
 	}
-	
+
 	if one, exists := pluralMap["one"]; exists {
 		if str, ok := one.(string); ok {
 			return str
 		}
 	}
-	
+
 	// Return first available form
 	for _, value := range pluralMap {
 		if str, ok := value.(string); ok {
 			return str
 		}
 	}
-	
+
 	return "{{.Count}} items" // fallback
 }

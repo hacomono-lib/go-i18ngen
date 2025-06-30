@@ -19,10 +19,10 @@ func (s *ConfigTestSuite) SetupSuite() {
 
 func (s *ConfigTestSuite) TestIsPluralPlaceholder() {
 	tests := []struct {
-		name         string
-		config       *Config
-		placeholder  string
-		expected     bool
+		name        string
+		config      *Config
+		placeholder string
+		expected    bool
 	}{
 		{
 			name: "default plural placeholders - exact match",
@@ -155,12 +155,12 @@ func (s *ConfigTestSuite) TestGetPluralPlaceholders() {
 	for _, tt := range tests {
 		s.Run(tt.name, func() {
 			result := tt.config.GetPluralPlaceholders()
-			
+
 			// Check that all expected placeholders are present
 			for _, expected := range tt.expected {
 				s.Contains(result, expected, "Expected placeholder %q not found", expected)
 			}
-			
+
 			// For default config, check that we have the right number
 			if len(tt.config.PluralPlaceholders) == 0 {
 				// Should have Count + count (case variations)
@@ -172,7 +172,7 @@ func (s *ConfigTestSuite) TestGetPluralPlaceholders() {
 
 func (s *ConfigTestSuite) TestGetDefaultPluralPlaceholders() {
 	defaults := getDefaultPluralPlaceholders()
-	
+
 	expected := []string{"Count"}
 	s.Equal(expected, defaults)
 }
@@ -180,19 +180,19 @@ func (s *ConfigTestSuite) TestGetDefaultPluralPlaceholders() {
 func (s *ConfigTestSuite) TestLoadConfigWithPluralPlaceholders() {
 	// Create a temporary config file
 	configPath := filepath.Join(s.tempDir, "config.yaml")
-	
+
 	configContent := `
 locales: ["en", "ja"]
 plural_placeholders: ["Count", "Number", "CustomTotal"]
 `
-	
+
 	err := os.WriteFile(configPath, []byte(configContent), 0644)
 	s.Require().NoError(err)
-	
+
 	// Load the config
 	config, err := LoadConfig(configPath)
 	s.Require().NoError(err)
-	
+
 	// Verify plural placeholders are loaded correctly
 	s.Equal([]string{"Count", "Number", "CustomTotal"}, config.PluralPlaceholders)
 	s.True(config.IsPluralPlaceholder("Count"))
@@ -205,18 +205,18 @@ plural_placeholders: ["Count", "Number", "CustomTotal"]
 func (s *ConfigTestSuite) TestLoadConfigWithoutPluralPlaceholders() {
 	// Create a temporary config file without plural_placeholders
 	configPath := filepath.Join(s.tempDir, "config.yaml")
-	
+
 	configContent := `
 locales: ["en", "ja"]
 `
-	
+
 	err := os.WriteFile(configPath, []byte(configContent), 0644)
 	s.Require().NoError(err)
-	
+
 	// Load the config
 	config, err := LoadConfig(configPath)
 	s.Require().NoError(err)
-	
+
 	// Verify default plural placeholders are used
 	s.Equal(getDefaultPluralPlaceholders(), config.PluralPlaceholders)
 	s.True(config.IsPluralPlaceholder("Count"))
@@ -229,13 +229,13 @@ func (s *ConfigTestSuite) TestLoadConfigWithEmptyPluralPlaceholders() {
 locales: ["en", "ja"]
 plural_placeholders: []
 `
-	
+
 	err := os.WriteFile(configPath, []byte(configContent), 0644)
 	s.Require().NoError(err)
-	
+
 	config, err := LoadConfig(configPath)
 	s.Require().NoError(err)
-	
+
 	// Empty list should trigger default behavior
 	s.True(config.IsPluralPlaceholder("Count"))
 	s.True(config.IsPluralPlaceholder("count"))
@@ -243,10 +243,10 @@ plural_placeholders: []
 
 func (s *ConfigTestSuite) TestLoadConfigFileNotExists() {
 	nonExistentPath := filepath.Join(s.tempDir, "nonexistent.yaml")
-	
+
 	config, err := LoadConfig(nonExistentPath)
 	s.Require().NoError(err)
-	
+
 	// Should return empty config when file doesn't exist
 	s.Empty(config.Locales)
 }
@@ -258,10 +258,10 @@ invalid: yaml: content:
   - missing
     proper: structure
 `
-	
+
 	err := os.WriteFile(configPath, []byte(invalidContent), 0644)
 	s.Require().NoError(err)
-	
+
 	_, err = LoadConfig(configPath)
 	s.Error(err)
 	s.Contains(err.Error(), "failed to parse config file")
@@ -272,7 +272,7 @@ func (s *ConfigTestSuite) TestConfigPathResolution() {
 	subDir := filepath.Join(s.tempDir, "subdir")
 	err := os.MkdirAll(subDir, 0755)
 	s.Require().NoError(err)
-	
+
 	configPath := filepath.Join(subDir, "config.yaml")
 	configContent := `
 locales: ["en", "ja"]
@@ -280,13 +280,13 @@ messages: "../messages/*.yaml"
 placeholders: "../placeholders/*.yaml"
 output_dir: "../output"
 `
-	
+
 	err = os.WriteFile(configPath, []byte(configContent), 0644)
 	s.Require().NoError(err)
-	
+
 	config, err := LoadConfig(configPath)
 	s.Require().NoError(err)
-	
+
 	// Paths should be resolved relative to config file directory
 	s.Equal(filepath.Join(s.tempDir, "messages", "*.yaml"), config.MessagesGlob)
 	s.Equal(filepath.Join(s.tempDir, "placeholders", "*.yaml"), config.PlaceholdersGlob)
@@ -300,13 +300,13 @@ func (s *ConfigTestSuite) TestConfigWithAbsolutePaths() {
 locales: ["en", "ja"]
 messages: "` + absPath + `"
 `
-	
+
 	err := os.WriteFile(configPath, []byte(configContent), 0644)
 	s.Require().NoError(err)
-	
+
 	config, err := LoadConfig(configPath)
 	s.Require().NoError(err)
-	
+
 	// Absolute paths should remain unchanged
 	s.Equal(absPath, config.MessagesGlob)
 }
@@ -315,19 +315,19 @@ func (s *ConfigTestSuite) TestPluralPlaceholderEdgeCases() {
 	config := &Config{
 		PluralPlaceholders: []string{"Count", "Number"},
 	}
-	
+
 	// Test empty string
 	s.False(config.IsPluralPlaceholder(""))
-	
+
 	// Test whitespace
 	s.False(config.IsPluralPlaceholder(" "))
 	s.False(config.IsPluralPlaceholder("Count "))
 	s.False(config.IsPluralPlaceholder(" Count"))
-	
+
 	// Test special characters
 	s.False(config.IsPluralPlaceholder("Count!"))
 	s.False(config.IsPluralPlaceholder("Count-1"))
-	
+
 	// Test substring matches (should not match)
 	s.False(config.IsPluralPlaceholder("Coun"))
 	s.False(config.IsPluralPlaceholder("ount"))

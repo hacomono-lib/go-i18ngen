@@ -221,7 +221,7 @@ example:
 	// Change to temp directory
 	originalDir, err := os.Getwd()
 	require.NoError(t, err)
-	defer os.Chdir(originalDir)
+	defer func() { _ = os.Chdir(originalDir) }()
 
 	err = os.Chdir(tempDir)
 	require.NoError(t, err)
@@ -281,7 +281,7 @@ john:
 	// Change to temp directory
 	originalDir, err := os.Getwd()
 	require.NoError(t, err)
-	defer os.Chdir(originalDir)
+	defer func() { _ = os.Chdir(originalDir) }()
 
 	err = os.Chdir(tempDir)
 	require.NoError(t, err)
@@ -318,7 +318,7 @@ func TestGenerateCommandError(t *testing.T) {
 	// Change to temp directory
 	originalDir, err := os.Getwd()
 	require.NoError(t, err)
-	defer os.Chdir(originalDir)
+	defer func() { _ = os.Chdir(originalDir) }()
 
 	err = os.Chdir(tempDir)
 	require.NoError(t, err)

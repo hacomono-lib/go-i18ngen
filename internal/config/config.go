@@ -92,10 +92,9 @@ func (c *Config) GetPluralPlaceholders() []string {
 // (case-insensitive comparison)
 func (c *Config) IsPluralPlaceholder(name string) bool {
 	plurals := c.GetPluralPlaceholders()
-	nameLower := strings.ToLower(name)
 
 	for _, placeholder := range plurals {
-		if strings.ToLower(placeholder) == nameLower {
+		if strings.EqualFold(placeholder, name) {
 			return true
 		}
 	}

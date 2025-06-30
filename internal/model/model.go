@@ -160,7 +160,7 @@ func Build(messages []MessageSource, placeholders []PlaceholderSource, locales [
 			if cfg.IsPluralPlaceholder(fieldInfo.Name) {
 				continue
 			}
-			
+
 			fieldName := fieldInfo.GenerateFieldName()
 			templateKey := fieldInfo.GenerateTemplateKey()
 
@@ -214,7 +214,7 @@ func Build(messages []MessageSource, placeholders []PlaceholderSource, locales [
 
 		// Check if message supports count (has pluralization)
 		supportsCount := messageSupportsCount(originalTemplates, cfg)
-		
+
 		defs.Messages = append(defs.Messages, templatex.Message{
 			ID:            msg.ID,
 			StructName:    structName,
@@ -239,10 +239,9 @@ func Build(messages []MessageSource, placeholders []PlaceholderSource, locales [
 
 // messageSupportsCount checks if a message has plural forms in any locale
 func messageSupportsCount(templates map[string]string, cfg *config.Config) bool {
-	
 	// Check for configured plural placeholder patterns
 	pluralPlaceholders := cfg.GetPluralPlaceholders()
-	
+
 	for _, template := range templates {
 		// Check for plural placeholders (with flexible spacing)
 		for _, placeholder := range pluralPlaceholders {
@@ -254,14 +253,14 @@ func messageSupportsCount(templates map[string]string, cfg *config.Config) bool 
 				return true
 			}
 		}
-		
+
 		// Also check for go-i18n specific pluralization patterns
 		// Templates that have "one:", "other:", "few:", etc. are typically plural
-		if strings.Contains(template, "one:") || 
-		   strings.Contains(template, "other:") || 
-		   strings.Contains(template, "few:") || 
-		   strings.Contains(template, "many:") || 
-		   strings.Contains(template, "zero:") {
+		if strings.Contains(template, "one:") ||
+			strings.Contains(template, "other:") ||
+			strings.Contains(template, "few:") ||
+			strings.Contains(template, "many:") ||
+			strings.Contains(template, "zero:") {
 			return true
 		}
 	}
