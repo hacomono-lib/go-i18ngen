@@ -9,7 +9,7 @@ GOFMT=gofmt
 GOLINT=golangci-lint
 
 # golangci-lint version (single source of truth - CI reads this value)
-GOLANGCI_LINT_VERSION=v1.64.8
+GOLANGCI_LINT_VERSION=v2.2.1
 
 # Binary info
 BINARY_NAME=go-i18ngen
@@ -125,7 +125,7 @@ dev-setup: deps install-golangci-lint ## Setup development environment
 
 .PHONY: install-golangci-lint
 install-golangci-lint: ## Install golangci-lint with specified version
-	@if ! $$(go env GOPATH)/bin/golangci-lint version 2>/dev/null | grep -q "$(GOLANGCI_LINT_VERSION)"; then \
+	@if ! $$(go env GOPATH)/bin/golangci-lint version 2>/dev/null | grep -q "$$(echo $(GOLANGCI_LINT_VERSION) | sed 's/^v//')"; then \
 		echo "Installing golangci-lint $(GOLANGCI_LINT_VERSION)..."; \
 		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin $(GOLANGCI_LINT_VERSION); \
 	else \

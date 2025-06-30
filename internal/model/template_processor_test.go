@@ -224,9 +224,10 @@ func (s *TemplateProcessorTestSuite) TestBuild() {
 	// Find messages by ID (order might vary)
 	var validationMsg, userWelcomeMsg *templatex.Message
 	for i := range result.Messages {
-		if result.Messages[i].ID == "ValidationError" {
+		switch result.Messages[i].ID {
+		case "ValidationError":
 			validationMsg = &result.Messages[i]
-		} else if result.Messages[i].ID == "UserWelcome" {
+		case "UserWelcome":
 			userWelcomeMsg = &result.Messages[i]
 		}
 	}
@@ -241,9 +242,10 @@ func (s *TemplateProcessorTestSuite) TestBuild() {
 	// Find fields by type/template key (order might vary)
 	var fieldField, reasonField *templatex.Field
 	for i := range validationMsg.Fields {
-		if validationMsg.Fields[i].TemplateKey == "field" {
+		switch validationMsg.Fields[i].TemplateKey {
+		case "field":
 			fieldField = &validationMsg.Fields[i]
-		} else if validationMsg.Fields[i].TemplateKey == "reason" {
+		case "reason":
 			reasonField = &validationMsg.Fields[i]
 		}
 	}
@@ -266,9 +268,10 @@ func (s *TemplateProcessorTestSuite) TestBuild() {
 	// Find suffix-based fields (order might vary)
 	var nameUserField, nameOwnerField *templatex.Field
 	for i := range userWelcomeMsg.Fields {
-		if userWelcomeMsg.Fields[i].TemplateKey == "nameUser" {
+		switch userWelcomeMsg.Fields[i].TemplateKey {
+		case "nameUser":
 			nameUserField = &userWelcomeMsg.Fields[i]
-		} else if userWelcomeMsg.Fields[i].TemplateKey == "nameOwner" {
+		case "nameOwner":
 			nameOwnerField = &userWelcomeMsg.Fields[i]
 		}
 	}
