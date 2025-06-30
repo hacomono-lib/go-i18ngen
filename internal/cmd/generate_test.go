@@ -156,3 +156,177 @@ output_dir: "output"
 		assert.Equal(t, "cmd_output", merged.OutputDir)
 	})
 }
+
+func TestNewGenerateCommand(t *testing.T) {
+	cmd := NewGenerateCommand()
+
+	assert.Equal(t, "generate", cmd.Use)
+	assert.Contains(t, cmd.Short, "Generate i18n message and placeholder code")
+	assert.NotNil(t, cmd.RunE)
+
+	// Check that flags are properly defined
+	assert.NotNil(t, cmd.Flags().Lookup("config"))
+	assert.NotNil(t, cmd.Flags().Lookup("locales"))
+	assert.NotNil(t, cmd.Flags().Lookup("compound"))
+	assert.NotNil(t, cmd.Flags().Lookup("messages"))
+	assert.NotNil(t, cmd.Flags().Lookup("placeholders"))
+	assert.NotNil(t, cmd.Flags().Lookup("output"))
+	assert.NotNil(t, cmd.Flags().Lookup("package"))
+}
+
+func TestGenerateCommandExecution(t *testing.T) {
+	tempDir := t.TempDir()
+
+	// Create test config file
+	configContent := `
+compound: true
+locales: [ja, en]
+messages: "messages/*.yaml"
+placeholders: "placeholders/*.yaml"
+output_dir: "."
+output_package: "i18n"
+`
+	configPath := filepath.Join(tempDir, "config.yaml")
+	err := os.WriteFile(configPath, []byte(configContent), 0644)
+	require.NoError(t, err)
+
+	// Create directories
+	messagesDir := filepath.Join(tempDir, "messages")
+	placeholdersDir := filepath.Join(tempDir, "placeholders")
+	err = os.MkdirAll(messagesDir, 0755)
+	require.NoError(t, err)
+	err = os.MkdirAll(placeholdersDir, 0755)
+	require.NoError(t, err)
+
+	// Create test message file
+	messageContent := `
+TestMessage:
+  ja: "テストメッセージ: {{.field}}"
+  en: "Test message: {{.field}}"
+`
+	messagePath := filepath.Join(messagesDir, "test.yaml")
+	err = os.WriteFile(messagePath, []byte(messageContent), 0644)
+	require.NoError(t, err)
+
+	// Create test placeholder file
+	placeholderContent := `
+example:
+  ja: "例"
+  en: "example"
+`
+	placeholderPath := filepath.Join(placeholdersDir, "field.yaml")
+	err = os.WriteFile(placeholderPath, []byte(placeholderContent), 0644)
+	require.NoError(t, err)
+
+	// Change to temp directory
+	originalDir, err := os.Getwd()
+	require.NoError(t, err)
+	defer func() { _ = os.Chdir(originalDir) }()
+
+	err = os.Chdir(tempDir)
+	require.NoError(t, err)
+
+	// Create and execute command
+	cmd := NewGenerateCommand()
+	cmd.SetArgs([]string{"--config", configPath})
+
+	err = cmd.Execute()
+	assert.NoError(t, err)
+
+	// Verify output file was created
+	outputPath := filepath.Join(tempDir, "i18n.gen.go")
+	_, err = os.Stat(outputPath)
+	assert.NoError(t, err, "Generated file should exist")
+
+	// Verify content contains expected elements
+	content, err := os.ReadFile(outputPath)
+	require.NoError(t, err)
+
+	contentStr := string(content)
+	assert.Contains(t, contentStr, "package i18n")
+	assert.Contains(t, contentStr, "type TestMessage struct")
+	assert.Contains(t, contentStr, "type FieldText struct")
+}
+
+func TestGenerateCommandWithFlags(t *testing.T) {
+	tempDir := t.TempDir()
+
+	// Create directories
+	messagesDir := filepath.Join(tempDir, "msgs")
+	placeholdersDir := filepath.Join(tempDir, "phs")
+	err := os.MkdirAll(messagesDir, 0755)
+	require.NoError(t, err)
+	err = os.MkdirAll(placeholdersDir, 0755)
+	require.NoError(t, err)
+
+	// Create test files
+	messageContent := `
+SimpleMessage:
+  en: "Hello {{.name}}"
+  fr: "Bonjour {{.name}}"
+`
+	messagePath := filepath.Join(messagesDir, "simple.yaml")
+	err = os.WriteFile(messagePath, []byte(messageContent), 0644)
+	require.NoError(t, err)
+
+	placeholderContent := `
+john:
+  en: "John"
+  fr: "Jean"
+`
+	placeholderPath := filepath.Join(placeholdersDir, "name.yaml")
+	err = os.WriteFile(placeholderPath, []byte(placeholderContent), 0644)
+	require.NoError(t, err)
+
+	// Change to temp directory
+	originalDir, err := os.Getwd()
+	require.NoError(t, err)
+	defer func() { _ = os.Chdir(originalDir) }()
+
+	err = os.Chdir(tempDir)
+	require.NoError(t, err)
+
+	// Create and execute command with flags
+	cmd := NewGenerateCommand()
+	cmd.SetArgs([]string{
+		"--locales", "en,fr",
+		"--compound", "true",
+		"--messages", "msgs/*.yaml",
+		"--placeholders", "phs/*.yaml",
+		"--output", ".",
+		"--package", "testpkg",
+	})
+
+	err = cmd.Execute()
+	assert.NoError(t, err)
+
+	// Verify output file was created with correct package name
+	outputPath := filepath.Join(tempDir, "i18n.gen.go")
+	_, err = os.Stat(outputPath)
+	assert.NoError(t, err, "Generated file should exist")
+
+	content, err := os.ReadFile(outputPath)
+	require.NoError(t, err)
+
+	contentStr := string(content)
+	assert.Contains(t, contentStr, "package testpkg")
+}
+
+func TestGenerateCommandError(t *testing.T) {
+	tempDir := t.TempDir()
+
+	// Change to temp directory
+	originalDir, err := os.Getwd()
+	require.NoError(t, err)
+	defer func() { _ = os.Chdir(originalDir) }()
+
+	err = os.Chdir(tempDir)
+	require.NoError(t, err)
+
+	// Create command with invalid config
+	cmd := NewGenerateCommand()
+	cmd.SetArgs([]string{"--config", "nonexistent.yaml"})
+
+	err = cmd.Execute()
+	assert.Error(t, err, "Should fail with nonexistent config file")
+}

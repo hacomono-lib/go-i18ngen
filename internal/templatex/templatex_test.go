@@ -31,7 +31,7 @@ func (s *TemplatexTestSuite) TearDownTest() {
 	_ = os.RemoveAll(s.tempDir)
 }
 
-func (s *TemplatexTestSuite) TestRender_Success() {
+func (s *TemplatexTestSuite) TestRenderGoI18n_Success() {
 	outputFile := filepath.Join(s.tempDir, "test.go")
 
 	messages := []MessageTemplate{
@@ -80,7 +80,7 @@ func (s *TemplatexTestSuite) TestRender_Success() {
 		},
 	}
 
-	err := Render(
+	err := RenderGoI18n(
 		outputFile,
 		"testpkg",
 		"ja",
@@ -88,6 +88,7 @@ func (s *TemplatexTestSuite) TestRender_Success() {
 		placeholderTemplates,
 		placeholders,
 		messageDefs,
+		[]string{"ja", "en"},
 	)
 
 	s.Assert().NoError(err)
@@ -103,11 +104,11 @@ func (s *TemplatexTestSuite) TestRender_Success() {
 	s.Assert().Contains(contentStr, "NewUserWelcome")
 }
 
-func (s *TemplatexTestSuite) TestRender_InvalidOutputPath() {
+func (s *TemplatexTestSuite) TestRenderGoI18n_InvalidOutputPath() {
 	// Use an invalid path that cannot be created
 	invalidPath := filepath.Join("/invalid", "path", "that", "does", "not", "exist", "test.go")
 
-	err := Render(
+	err := RenderGoI18n(
 		invalidPath,
 		"testpkg",
 		"ja",
@@ -115,16 +116,17 @@ func (s *TemplatexTestSuite) TestRender_InvalidOutputPath() {
 		[]PlaceholderTemplate{},
 		[]Placeholder{},
 		[]Message{},
+		[]string{"ja"},
 	)
 
 	s.Assert().Error(err)
 	s.Assert().Contains(err.Error(), "failed to write generated code")
 }
 
-func (s *TemplatexTestSuite) TestRender_EmptyData() {
+func (s *TemplatexTestSuite) TestRenderGoI18n_EmptyData() {
 	outputFile := filepath.Join(s.tempDir, "empty.go")
 
-	err := Render(
+	err := RenderGoI18n(
 		outputFile,
 		"emptypkg",
 		"en",
@@ -132,6 +134,7 @@ func (s *TemplatexTestSuite) TestRender_EmptyData() {
 		[]PlaceholderTemplate{},
 		[]Placeholder{},
 		[]Message{},
+		[]string{"en"},
 	)
 
 	s.Assert().NoError(err)
@@ -145,12 +148,12 @@ func (s *TemplatexTestSuite) TestRender_EmptyData() {
 	s.Assert().Contains(contentStr, "package emptypkg")
 }
 
-func (s *TemplatexTestSuite) TestRenderWithConfig_Success() {
+func (s *TemplatexTestSuite) TestRenderGoI18nWithTemplateFunctions_Success() {
 	outputFile := filepath.Join(s.tempDir, "config_test.go")
 
-	config := &TemplateConfig{}
+	templateFunctions := map[string]map[string]map[string][]string{}
 
-	err := RenderWithConfig(
+	err := RenderGoI18nWithTemplateFunctions(
 		outputFile,
 		"configpkg",
 		"en",
@@ -158,7 +161,8 @@ func (s *TemplatexTestSuite) TestRenderWithConfig_Success() {
 		[]PlaceholderTemplate{},
 		[]Placeholder{},
 		[]Message{},
-		config,
+		[]string{"en"},
+		templateFunctions,
 	)
 
 	s.Assert().NoError(err)
@@ -171,7 +175,7 @@ func (s *TemplatexTestSuite) TestRenderWithConfig_Success() {
 	s.Assert().Contains(contentStr, "package configpkg")
 }
 
-func (s *TemplatexTestSuite) TestRender_WithMinimalData() {
+func (s *TemplatexTestSuite) TestRenderGoI18n_WithMinimalData() {
 	outputFile := filepath.Join(s.tempDir, "minimal.go")
 
 	// Test with minimal valid data
@@ -195,7 +199,7 @@ func (s *TemplatexTestSuite) TestRender_WithMinimalData() {
 		},
 	}
 
-	err := Render(
+	err := RenderGoI18n(
 		outputFile,
 		"minimalpkg",
 		"en",
@@ -203,6 +207,7 @@ func (s *TemplatexTestSuite) TestRender_WithMinimalData() {
 		[]PlaceholderTemplate{},
 		[]Placeholder{},
 		messageDefs,
+		[]string{"en"},
 	)
 
 	s.Assert().NoError(err)
@@ -362,4 +367,181 @@ func TestRenderWithConfig_InvalidGoCode(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to format generated Go code")
+}
+
+func (s *TemplatexTestSuite) TestCreateFuncMapFunctions() {
+	funcMap := CreateFuncMap()
+
+	// Test all expected functions are present
+	expectedFuncs := []string{
+		"sortMapKeys", "sortLocales", "camelCase", "safeIdent",
+		"formatPluralTemplate", "title", "capitalize", "commentSafe", "lastKey",
+	}
+
+	for _, funcName := range expectedFuncs {
+		s.Contains(funcMap, funcName, "Function %s should be in funcMap", funcName)
+	}
+}
+
+func (s *TemplatexTestSuite) TestSafeIdentFunction() {
+	funcMap := CreateFuncMap()
+	safeIdentFunc := funcMap["safeIdent"]
+
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"ValidName", "ValidName"},
+		{"123Invalid", "123Invalid"}, // Actual behavior from utils.SafeGoIdentifier
+		{"type", "type_"},            // Actual behavior from utils.SafeGoIdentifier
+		{"func", "func_"},            // Actual behavior from utils.SafeGoIdentifier
+		{"valid_name", "valid_name"},
+		{"", ""}, // Actual behavior from utils.SafeGoIdentifier
+	}
+
+	for _, tt := range tests {
+		result := safeIdentFunc.(func(string) string)(tt.input)
+		s.Equal(tt.expected, result, "safeIdent(%s)", tt.input)
+	}
+}
+
+func (s *TemplatexTestSuite) TestTemplateFunctionEdgeCases() {
+	// Test edge cases for template functions to improve coverage
+	tests := []struct {
+		name     string
+		template string
+		data     interface{}
+		expected string
+	}{
+		{
+			name:     "titleFunc with empty string",
+			template: `{{.value | title}}`,
+			data:     map[string]string{"value": ""},
+			expected: "",
+		},
+		{
+			name:     "capitalizeFunc with empty string",
+			template: `{{.value | capitalize}}`,
+			data:     map[string]string{"value": ""},
+			expected: "",
+		},
+		{
+			name:     "camelCase with empty parts",
+			template: `{{.value | camelCase}}`,
+			data:     map[string]string{"value": "hello__world"},
+			expected: "helloWorld",
+		},
+		{
+			name:     "lastKey with empty map",
+			template: `{{lastKey .templates}}`,
+			data:     map[string]interface{}{"templates": map[string]string{}},
+			expected: "",
+		},
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			result, err := executeTemplateDirectly(tt.template, tt.data)
+			s.NoError(err)
+			s.Equal(tt.expected, strings.TrimSpace(result))
+		})
+	}
+}
+
+func (s *TemplatexTestSuite) TestFormatPluralTemplateFunction() {
+	// Test formatPluralTemplate function coverage
+	funcMap := CreateFuncMap()
+	formatPluralFunc := funcMap["formatPluralTemplate"]
+
+	tests := []struct {
+		name     string
+		input    interface{}
+		expected string
+	}{
+		{
+			name:     "string input",
+			input:    "Hello {{.name}}",
+			expected: `"Hello {{.name}}"`,
+		},
+		{
+			name: "map[string]interface{} with single form",
+			input: map[string]interface{}{
+				"other": "{{.Count}} items",
+			},
+			expected: `{other: "{{.Count}} items"}`,
+		},
+		{
+			name: "map[string]interface{} with multiple forms",
+			input: map[string]interface{}{
+				"one":   "{{.Count}} item",
+				"other": "{{.Count}} items",
+			},
+			expected: `{` + "\n" + `//       one: "{{.Count}} item",` + "\n" + `//       other: "{{.Count}} items"` + "\n" + `//     }`,
+		},
+		{
+			name: "map[interface{}]interface{} input",
+			input: map[interface{}]interface{}{
+				"one":   "{{.Count}} item",
+				"other": "{{.Count}} items",
+			},
+			expected: `{` + "\n" + `//       one: "{{.Count}} item",` + "\n" + `//       other: "{{.Count}} items"` + "\n" + `//     }`,
+		},
+		{
+			name:     "non-string, non-map input",
+			input:    123,
+			expected: `"123"`,
+		},
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			result := formatPluralFunc.(func(interface{}) string)(tt.input)
+			s.Equal(tt.expected, result)
+		})
+	}
+}
+
+func (s *TemplatexTestSuite) TestRenderTemplateWithConfigErrors() {
+	// Test error cases for RenderTemplateWithConfig
+	tests := []struct {
+		name          string
+		tmplContent   string
+		data          interface{}
+		expectError   bool
+		errorContains string
+	}{
+		{
+			name:          "template parse error",
+			tmplContent:   "{{.invalid syntax",
+			data:          map[string]string{},
+			expectError:   true,
+			errorContains: "failed to parse Go template",
+		},
+		{
+			name:          "template execution error",
+			tmplContent:   "package test\n{{call .nonexistent}}",
+			data:          map[string]string{},
+			expectError:   true,
+			errorContains: "failed to execute Go template",
+		},
+		{
+			name:          "invalid Go code generation",
+			tmplContent:   "package test\nfunc { invalid syntax }",
+			data:          map[string]string{},
+			expectError:   true,
+			errorContains: "failed to format generated Go code",
+		},
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			_, err := RenderTemplateWithConfig(tt.tmplContent, tt.data, nil)
+			if tt.expectError {
+				s.Error(err)
+				s.Contains(err.Error(), tt.errorContains)
+			} else {
+				s.NoError(err)
+			}
+		})
+	}
 }

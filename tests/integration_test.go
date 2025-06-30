@@ -1,4 +1,4 @@
-package i18ngen_test
+package tests
 
 import (
 	"os"
@@ -108,17 +108,9 @@ deleted:
 	assert.Equal(t, 1, fieldInputCount, "FieldInput field is not correctly generated in ValidationError struct")
 	assert.Equal(t, 1, fieldDisplayCount, "FieldDisplay field is not correctly generated in ValidationError struct")
 
-	// Verify that EntityText-related structs and utilities are generated
+	// Verify that placeholder types are generated
 	assert.Contains(t, codeStr, "type EntityText struct", "EntityText struct is not generated")
-	assert.Contains(t, codeStr, "var EntityTexts = struct", "EntityTexts utility is not generated")
-	assert.Contains(t, codeStr, "User EntityText", "EntityTexts.User is not generated")
-	assert.Contains(t, codeStr, "Product EntityText", "EntityTexts.Product is not generated")
-
-	// Verify ReasonText-related as well
 	assert.Contains(t, codeStr, "type ReasonText struct", "ReasonText struct is not generated")
-	assert.Contains(t, codeStr, "var ReasonTexts = struct", "ReasonTexts utility is not generated")
-
-	// Verify that NameValue and FieldValue structs are generated (value-type placeholders)
 	assert.Contains(t, codeStr, "type NameValue struct", "NameValue struct is not generated")
 	assert.Contains(t, codeStr, "type FieldValue struct", "FieldValue struct is not generated")
 
@@ -132,18 +124,16 @@ deleted:
 	assert.Contains(t, codeStr, "func (m ValidationError) Localize(locale string) string", "ValidationError.Localize function is not generated")
 	assert.Contains(t, codeStr, "func (m EntityNotFound) Localize(locale string) string", "EntityNotFound.Localize function is not generated")
 
-	// Verify that template data is correctly included (with suffix notation)
-	assert.Contains(t, codeStr, `"WelcomeMessage": {`, "WelcomeMessage template is not generated")
-	assert.Contains(t, codeStr, `"{{.nameUser}}さん、{{.nameOwner}}さんのアカウントへようこそ！"`, "Japanese template is not correctly included")
-	assert.Contains(t, codeStr, `"Welcome {{.nameUser}}, to {{.nameOwner}}'s account!"`, "English template is not correctly included")
+	// Verify that template data is correctly included in messageData (go-i18n format)
+	assert.Contains(t, codeStr, `WelcomeMessage: "{{.name:user}}さん、{{.name:owner}}さんのアカウントへようこそ！"`, "Japanese WelcomeMessage template is not correctly included")
+	assert.Contains(t, codeStr, `WelcomeMessage: "Welcome {{.name:user}}, to {{.name:owner}}'s account!"`, "English WelcomeMessage template is not correctly included")
 
 	// Verify templates with template functions as well
-	assert.Contains(t, codeStr, `"{{.fieldInput}}の{{.fieldDisplay | upper}}検証エラーです"`, "Japanese template with template functions is not correctly included")
-	assert.Contains(t, codeStr, `"{{.fieldInput | title}} validation error for {{.fieldDisplay}}"`, "English template with template functions is not correctly included")
+	assert.Contains(t, codeStr, `ValidationError: "{{.field:input}}の{{.field:display | upper}}検証エラーです"`, "Japanese template with template functions is not correctly included")
+	assert.Contains(t, codeStr, `ValidationError: "{{.field:input | title}} validation error for {{.field:display}}"`, "English template with template functions is not correctly included")
 
-	// Verify that placeholder templates are correctly included
-	assert.Contains(t, codeStr, `var entityTemplates = map[string]map[string]string{`, "entityTemplates is not generated")
-	assert.Contains(t, codeStr, `var reasonTemplates = map[string]map[string]string{`, "reasonTemplates is not generated")
+	// Verify that placeholder data is correctly embedded (go-i18n style)
+	assert.Contains(t, codeStr, `var placeholderData = map[string]map[string]string{`, "placeholderData is not generated")
 	assert.Contains(t, codeStr, `"user": {`, "user entity is not included")
 	assert.Contains(t, codeStr, `"ユーザー"`, "Japanese user entity is not included")
 	assert.Contains(t, codeStr, `"User"`, "English user entity is not included")

@@ -80,7 +80,7 @@ func Run(cfg *config.Config) (returnErr error) {
 			cfg.MessagesGlob)
 	}
 
-	defs, err := model.Build(messages, placeholders, cfg.Locales)
+	defs, err := model.Build(messages, placeholders, cfg.Locales, cfg)
 	if err != nil {
 		return fmt.Errorf(
 			"failed to build models from parsed data:\n  %w\n\nSuggestions:\n"+
@@ -118,7 +118,12 @@ func Run(cfg *config.Config) (returnErr error) {
 
 	// Generate i18n file
 	outputFile := filepath.Join(cfg.OutputDir, "i18n.gen.go")
-	if err := templatex.Render(
+
+	// Build template functions metadata
+	templateFunctions := model.BuildTemplateFunctionsMetadata(messages, cfg.Locales)
+
+	// Generate go-i18n code
+	if err := templatex.RenderGoI18nWithTemplateFunctions(
 		outputFile,
 		cfg.OutputPackage,
 		primaryLocale,
@@ -126,9 +131,11 @@ func Run(cfg *config.Config) (returnErr error) {
 		placeholderTemplates,
 		defs.Placeholders,
 		defs.Messages,
+		cfg.Locales,
+		templateFunctions,
 	); err != nil {
 		return fmt.Errorf(
-			"failed to render generated code to %q:\n  %w\n\nSuggestions:\n"+
+			"failed to render go-i18n generated code to %q:\n  %w\n\nSuggestions:\n"+
 				"  - Check output directory permissions\n"+
 				"  - Verify package name is valid\n"+
 				"  - Ensure templates generate valid Go code\n"+

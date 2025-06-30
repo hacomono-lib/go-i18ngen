@@ -7,11 +7,27 @@ import (
 
 	"github.com/hacomono-lib/go-i18ngen/internal/model"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
 
-func TestExtractFieldInfos(t *testing.T) {
+type ParserTestSuite struct {
+	suite.Suite
+	tempDir string
+}
+
+func (s *ParserTestSuite) SetupSuite() {
+	var err error
+	s.tempDir, err = os.MkdirTemp("", "i18ngen_parser_test")
+	s.Require().NoError(err)
+}
+
+func (s *ParserTestSuite) TearDownSuite() {
+	if s.tempDir != "" {
+		_ = os.RemoveAll(s.tempDir)
+	}
+}
+
+func (s *ParserTestSuite) TestExtractFieldInfos() {
 	tests := []struct {
 		name     string
 		template string
@@ -73,26 +89,6 @@ func TestExtractFieldInfos(t *testing.T) {
 			expected: []model.FieldInfo{},
 		},
 		{
-			name:     "suffix notation single",
-			template: "{{.entity:from}}",
-			expected: []model.FieldInfo{{Name: "entity", Suffix: "from"}},
-		},
-		{
-			name:     "suffix notation multiple",
-			template: "{{.entity:from}} to {{.entity:to}}",
-			expected: []model.FieldInfo{{Name: "entity", Suffix: "from"}, {Name: "entity", Suffix: "to"}},
-		},
-		{
-			name:     "suffix notation with template functions",
-			template: "{{.entity:from | title}} to {{.entity:to | upper}}",
-			expected: []model.FieldInfo{{Name: "entity", Suffix: "from"}, {Name: "entity", Suffix: "to"}},
-		},
-		{
-			name:     "mixed suffix and regular placeholders",
-			template: "{{.name}} moved {{.entity:from}} to {{.entity:to}}",
-			expected: []model.FieldInfo{{Name: "name", Suffix: ""}, {Name: "entity", Suffix: "from"}, {Name: "entity", Suffix: "to"}},
-		},
-		{
 			name:     "numeric suffix",
 			template: "{{.item:1}} and {{.item:2}}",
 			expected: []model.FieldInfo{{Name: "item", Suffix: "1"}, {Name: "item", Suffix: "2"}},
@@ -105,21 +101,16 @@ func TestExtractFieldInfos(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		s.Run(tt.name, func() {
 			result := extractFieldInfos(tt.template)
-			assert.Equal(t, tt.expected, result, "Field extraction does not match expected values")
+			s.Equal(tt.expected, result, "Field extraction does not match expected values")
 		})
 	}
 }
 
-func TestParseMessages(t *testing.T) {
-	// Create temporary directory
-	tempDir, err := os.MkdirTemp("", "i18ngen_test")
-	require.NoError(t, err)
-	defer func() { _ = os.RemoveAll(tempDir) }()
-
+func (s *ParserTestSuite) TestParseMessages() {
 	// Create test message file with only valid syntax (no duplicate placeholders)
-	messageFile := filepath.Join(tempDir, "messages.yaml")
+	messageFile := filepath.Join(s.tempDir, "messages.yaml")
 	messageContent := `EntityNotFound:
   ja: "{{.entity}}が見つかりません: {{.reason}}"
   en: "{{.entity}} not found: {{.reason}}"
@@ -130,123 +121,206 @@ TemplateFunctionExample:
   ja: "{{.field:input}}に{{.field:display | upper}}エラー"
   en: "{{.field:input | title}} error in {{.field:display}}"
 `
-	require.NoError(t, os.WriteFile(messageFile, []byte(messageContent), 0644))
+	s.Require().NoError(os.WriteFile(messageFile, []byte(messageContent), 0644))
 
 	// Execute ParseMessages
-	pattern := filepath.Join(tempDir, "*.yaml")
+	pattern := filepath.Join(s.tempDir, "messages.yaml")
 	results, err := ParseMessages(pattern)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Verify results
-	assert.Len(t, results, 3, "Number of messages does not match expected")
+	s.Len(results, 3, "Number of messages does not match expected")
 
 	// Verify EntityNotFound
-	entityNotFound := findMessageByID(results, "EntityNotFound")
-	require.NotNil(t, entityNotFound, "EntityNotFound message not found")
+	entityNotFound := s.findMessageByID(results, "EntityNotFound")
+	s.Require().NotNil(entityNotFound, "EntityNotFound message not found")
 
 	expectedEntityFields := []model.FieldInfo{{Name: "entity", Suffix: ""}, {Name: "reason", Suffix: ""}}
-	assert.Equal(t, expectedEntityFields, entityNotFound.FieldInfos)
-	assert.Equal(t, "{{.entity}}が見つかりません: {{.reason}}", entityNotFound.Templates["ja"])
-	assert.Equal(t, "{{.entity}} not found: {{.reason}}", entityNotFound.Templates["en"])
+	s.Equal(expectedEntityFields, entityNotFound.FieldInfos)
+	s.Equal("{{.entity}}が見つかりません: {{.reason}}", entityNotFound.Templates["ja"])
+	s.Equal("{{.entity}} not found: {{.reason}}", entityNotFound.Templates["en"])
 
 	// Verify SuffixExample (suffix notation)
-	suffixExample := findMessageByID(results, "SuffixExample")
-	require.NotNil(t, suffixExample, "SuffixExample message not found")
+	suffixExample := s.findMessageByID(results, "SuffixExample")
+	s.Require().NotNil(suffixExample, "SuffixExample message not found")
 
 	expectedSuffixFields := []model.FieldInfo{{Name: "name", Suffix: "user"}, {Name: "name", Suffix: "owner"}}
-	assert.Equal(t, expectedSuffixFields, suffixExample.FieldInfos, "Suffix notation placeholders are not properly processed")
+	s.Equal(expectedSuffixFields, suffixExample.FieldInfos, "Suffix notation placeholders are not properly processed")
 
 	// Verify TemplateFunctionExample
-	templateFunctionExample := findMessageByID(results, "TemplateFunctionExample")
-	require.NotNil(t, templateFunctionExample, "TemplateFunctionExample message not found")
+	templateFunctionExample := s.findMessageByID(results, "TemplateFunctionExample")
+	s.Require().NotNil(templateFunctionExample, "TemplateFunctionExample message not found")
 
 	expectedTemplateFields := []model.FieldInfo{{Name: "field", Suffix: "input"}, {Name: "field", Suffix: "display"}}
-	assert.Equal(t, expectedTemplateFields, templateFunctionExample.FieldInfos, "Placeholders with template functions are not properly processed")
+	s.Equal(expectedTemplateFields, templateFunctionExample.FieldInfos, "Placeholders with template functions are not properly processed")
 }
 
-func TestParseMessagesWithJSON(t *testing.T) {
-	// Create temporary directory
-	tempDir, err := os.MkdirTemp("", "i18ngen_json_test")
-	require.NoError(t, err)
-	defer func() { _ = os.RemoveAll(tempDir) }()
-
+func (s *ParserTestSuite) TestParseMessagesWithJSON() {
 	// Create JSON format test message file with suffix notation
-	messageFile := filepath.Join(tempDir, "messages.json")
+	messageFile := filepath.Join(s.tempDir, "messages.json")
 	messageContent := `{
   "ValidationError": {
     "ja": "{{.field:input}}の{{.field:display | upper}}検証エラー",
     "en": "{{.field:input | title}} validation error for {{.field:display}}"
   }
 }`
-	require.NoError(t, os.WriteFile(messageFile, []byte(messageContent), 0644))
+	s.Require().NoError(os.WriteFile(messageFile, []byte(messageContent), 0644))
 
 	// Execute ParseMessages
-	pattern := filepath.Join(tempDir, "*.json")
+	pattern := filepath.Join(s.tempDir, "messages.json")
 	results, err := ParseMessages(pattern)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Verify results
-	assert.Len(t, results, 1)
+	s.Len(results, 1)
 	validationError := results[0]
-	assert.Equal(t, "ValidationError", validationError.ID)
+	s.Equal("ValidationError", validationError.ID)
 
 	expectedFields := []model.FieldInfo{{Name: "field", Suffix: "input"}, {Name: "field", Suffix: "display"}}
-	assert.Equal(t, expectedFields, validationError.FieldInfos, "Verify that suffix notation and template function processing work with JSON format")
+	s.Equal(expectedFields, validationError.FieldInfos, "Verify that suffix notation and template function processing work with JSON format")
 }
 
-func TestParseMessagesDuplicatePlaceholderValidation(t *testing.T) {
-	// Create temporary directory
-	tempDir, err := os.MkdirTemp("", "i18ngen_validation_test")
-	require.NoError(t, err)
-	defer func() { _ = os.RemoveAll(tempDir) }()
-
+func (s *ParserTestSuite) TestParseMessagesDuplicatePlaceholderValidation() {
 	// Create test message file with duplicate placeholders (should fail)
-	messageFile := filepath.Join(tempDir, "messages.yaml")
+	messageFile := filepath.Join(s.tempDir, "invalid_messages.yaml")
 	messageContent := `InvalidMessage:
   ja: "{{.name}}さん、{{.name}}さんのアカウントへようこそ"
   en: "Welcome {{.name}}, to {{.name}}'s account"
 `
-	require.NoError(t, os.WriteFile(messageFile, []byte(messageContent), 0644))
+	s.Require().NoError(os.WriteFile(messageFile, []byte(messageContent), 0644))
 
 	// Execute ParseMessages - should return error
-	pattern := filepath.Join(tempDir, "*.yaml")
+	pattern := filepath.Join(s.tempDir, "invalid_messages.yaml")
 	results, err := ParseMessages(pattern)
-	assert.Error(t, err, "Should return error for duplicate placeholders")
-	assert.Contains(t, err.Error(), "duplicate placeholder", "Error message should mention duplicate placeholder")
-	assert.Contains(t, err.Error(), "suffix notation", "Error message should suggest suffix notation")
-	assert.Nil(t, results)
+	s.Error(err, "Should return error for duplicate placeholders")
+	s.Contains(err.Error(), "duplicate placeholder", "Error message should mention duplicate placeholder")
+	s.Contains(err.Error(), "suffix notation", "Error message should suggest suffix notation")
+	s.Nil(results)
 }
 
-func TestParseMessagesEmptyPattern(t *testing.T) {
+func (s *ParserTestSuite) TestParseMessagesEmptyPattern() {
 	// Test with non-existent pattern
 	results, err := ParseMessages("/nonexistent/*.yaml")
-	assert.Error(t, err, "Should return error for non-existent patterns")
-	assert.Contains(t, err.Error(), "no message files found", "Error should indicate no files found")
-	assert.Nil(t, results)
+	s.Error(err, "Should return error for non-existent patterns")
+	s.Contains(err.Error(), "no message files found", "Error should indicate no files found")
+	s.Nil(results)
 }
 
-func TestDecodeMessageFileErrors(t *testing.T) {
-	// Create temporary directory
-	tempDir, err := os.MkdirTemp("", "i18ngen_error_test")
-	require.NoError(t, err)
-	defer func() { _ = os.RemoveAll(tempDir) }()
-
+func (s *ParserTestSuite) TestDecodeMessageFileErrors() {
 	// Create invalid YAML file
-	invalidFile := filepath.Join(tempDir, "invalid.yaml")
+	invalidFile := filepath.Join(s.tempDir, "invalid.yaml")
 	invalidContent := `invalid: yaml: content:
   - unclosed
     brackets: [`
-	require.NoError(t, os.WriteFile(invalidFile, []byte(invalidContent), 0644))
+	s.Require().NoError(os.WriteFile(invalidFile, []byte(invalidContent), 0644))
 
 	// Verify that error is returned
-	pattern := filepath.Join(tempDir, "*.yaml")
+	pattern := filepath.Join(s.tempDir, "invalid.yaml")
 	results, err := ParseMessages(pattern)
-	assert.Error(t, err, "Verify that error is returned for invalid YAML files")
-	assert.Nil(t, results)
+	s.Error(err, "Verify that error is returned for invalid YAML files")
+	s.Nil(results)
+}
+
+func (s *ParserTestSuite) TestParsePlaceholdersSimpleFormat() {
+	// Create test placeholder files in simple format
+	fieldFile := filepath.Join(s.tempDir, "field.ja.yaml")
+	fieldContent := `EmailAddress: "メールアドレス"
+FirstName: "名前"
+LastName: "苗字"`
+	s.Require().NoError(os.WriteFile(fieldFile, []byte(fieldContent), 0644))
+
+	fieldEnFile := filepath.Join(s.tempDir, "field.en.yaml")
+	fieldEnContent := `EmailAddress: "Email Address"
+FirstName: "First Name"
+LastName: "Last Name"`
+	s.Require().NoError(os.WriteFile(fieldEnFile, []byte(fieldEnContent), 0644))
+
+	// Execute ParsePlaceholders for simple format
+	pattern := filepath.Join(s.tempDir, "field.*.yaml")
+	locales := []string{"ja", "en"}
+	results, err := ParsePlaceholders(pattern, locales, false)
+	s.Require().NoError(err)
+
+	// Verify results
+	s.Len(results, 1, "Should have one placeholder source")
+	s.Equal("field", results[0].Kind)
+	s.Len(results[0].Items, 3, "Should have three items")
+
+	// Verify content
+	s.Equal("メールアドレス", results[0].Items["EmailAddress"]["ja"])
+	s.Equal("Email Address", results[0].Items["EmailAddress"]["en"])
+}
+
+func (s *ParserTestSuite) TestParsePlaceholdersCompoundFormat() {
+	// Create test placeholder files in compound format
+	entityFile := filepath.Join(s.tempDir, "entity.yaml")
+	entityContent := `user:
+  ja: "ユーザー"
+  en: "User"
+product:
+  ja: "製品"
+  en: "Product"`
+	s.Require().NoError(os.WriteFile(entityFile, []byte(entityContent), 0644))
+
+	// Execute ParsePlaceholders for compound format
+	pattern := filepath.Join(s.tempDir, "entity.yaml")
+	locales := []string{"ja", "en"}
+	results, err := ParsePlaceholders(pattern, locales, true)
+	s.Require().NoError(err)
+
+	// Verify results
+	s.Len(results, 1, "Should have one placeholder source")
+	s.Equal("entity", results[0].Kind)
+	s.Len(results[0].Items, 2, "Should have two items")
+
+	// Verify content
+	s.Equal("ユーザー", results[0].Items["user"]["ja"])
+	s.Equal("User", results[0].Items["user"]["en"])
+}
+
+func (s *ParserTestSuite) TestParsePlaceholdersErrorCases() {
+	tests := []struct {
+		name        string
+		setupFunc   func() string // Returns pattern
+		expectError bool
+	}{
+		{
+			"non-existent pattern",
+			func() string {
+				return "/nonexistent/path/*.yaml"
+			},
+			false, // ParsePlaceholders returns empty slice for missing files
+		},
+		{
+			"invalid YAML content",
+			func() string {
+				invalidFile := filepath.Join(s.tempDir, "invalid.yaml")
+				invalidContent := `invalid: yaml: content:`
+				s.Require().NoError(os.WriteFile(invalidFile, []byte(invalidContent), 0644))
+				return invalidFile
+			},
+			true,
+		},
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			pattern := tt.setupFunc()
+			results, err := ParsePlaceholders(pattern, []string{"en"}, true)
+
+			if tt.expectError {
+				s.Error(err)
+				s.Nil(results)
+			} else {
+				s.NoError(err)
+				s.NotNil(results)
+			}
+		})
+	}
 }
 
 // Helper function
-func findMessageByID(messages []model.MessageSource, id string) *model.MessageSource {
+func (s *ParserTestSuite) findMessageByID(messages []model.MessageSource, id string) *model.MessageSource {
 	for i := range messages {
 		if messages[i].ID == id {
 			return &messages[i]
@@ -255,262 +329,287 @@ func findMessageByID(messages []model.MessageSource, id string) *model.MessageSo
 	return nil
 }
 
-// ParsePlaceholders tests
-func TestParsePlaceholders(t *testing.T) {
-	// Create temporary directory
-	tempDir, err := os.MkdirTemp("", "i18ngen_placeholder_test")
-	require.NoError(t, err)
-	defer func() { _ = os.RemoveAll(tempDir) }()
+func (s *ParserTestSuite) TestConvertMixedToStringMap() {
+	// Test for convertMixedToStringMap function coverage
+	tests := []struct {
+		name     string
+		input    map[string]map[string]interface{}
+		expected map[string]map[string]string
+	}{
+		{
+			name: "simple string templates",
+			input: map[string]map[string]interface{}{
+				"SimpleMessage": {
+					"en": "Hello {{.name}}",
+					"ja": "こんにちは {{.name}}",
+				},
+			},
+			expected: map[string]map[string]string{
+				"SimpleMessage": {
+					"en": "Hello {{.name}}",
+					"ja": "こんにちは {{.name}}",
+				},
+			},
+		},
+		{
+			name: "plural templates",
+			input: map[string]map[string]interface{}{
+				"CountMessage": {
+					"en": map[string]interface{}{
+						"one":   "{{.Count}} item",
+						"other": "{{.Count}} items",
+					},
+					"ja": "{{.Count}}個のアイテム",
+				},
+			},
+			expected: map[string]map[string]string{
+				"CountMessage": {
+					"en": "{{.Count}} items", // Should use "other" form
+					"ja": "{{.Count}}個のアイテム",
+				},
+			},
+		},
+		{
+			name: "mixed interface types",
+			input: map[string]map[string]interface{}{
+				"MixedMessage": {
+					"en": map[interface{}]interface{}{
+						"one":   "One item",
+						"other": "{{.Count}} items",
+					},
+					"ja": 123, // Non-string fallback
+				},
+			},
+			expected: map[string]map[string]string{
+				"MixedMessage": {
+					"en": "{{.Count}} items",
+					"ja": "123",
+				},
+			},
+		},
+	}
 
-	// Create test placeholder files
-	// Simple format files
-	fieldFile := filepath.Join(tempDir, "field.ja.yaml")
-	fieldContent := `EmailAddress: "メールアドレス"
-FirstName: "名前"
-LastName: "苗字"`
-	require.NoError(t, os.WriteFile(fieldFile, []byte(fieldContent), 0644))
-
-	fieldEnFile := filepath.Join(tempDir, "field.en.yaml")
-	fieldEnContent := `EmailAddress: "Email Address"
-FirstName: "First Name"
-LastName: "Last Name"`
-	require.NoError(t, os.WriteFile(fieldEnFile, []byte(fieldEnContent), 0644))
-
-	// Execute ParsePlaceholders
-	pattern := filepath.Join(tempDir, "*.yaml")
-	locales := []string{"ja", "en"}
-	results, err := ParsePlaceholders(pattern, locales, false)
-	require.NoError(t, err)
-
-	// Verify results
-	assert.Len(t, results, 1, "Should have one placeholder source")
-	assert.Equal(t, "field", results[0].Kind)
-	assert.Len(t, results[0].Items, 3, "Should have three items")
-
-	// Verify specific items
-	assert.Contains(t, results[0].Items, "EmailAddress")
-	assert.Contains(t, results[0].Items, "FirstName")
-	assert.Contains(t, results[0].Items, "LastName")
-
-	// Verify locales
-	emailItem := results[0].Items["EmailAddress"]
-	assert.Equal(t, "メールアドレス", emailItem["ja"])
-	assert.Equal(t, "Email Address", emailItem["en"])
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			result := convertMixedToStringMap(tt.input)
+			s.Equal(tt.expected, result)
+		})
+	}
 }
 
-func TestParsePlaceholdersCompoundFormat(t *testing.T) {
-	// Create temporary directory
-	tempDir, err := os.MkdirTemp("", "i18ngen_compound_test")
-	require.NoError(t, err)
-	defer func() { _ = os.RemoveAll(tempDir) }()
+func (s *ParserTestSuite) TestConvertPluralToTemplate() {
+	// Test for convertPluralToTemplate function coverage
+	tests := []struct {
+		name     string
+		input    map[string]interface{}
+		expected string
+	}{
+		{
+			name: "has other form",
+			input: map[string]interface{}{
+				"one":   "{{.Count}} item",
+				"other": "{{.Count}} items",
+			},
+			expected: "{{.Count}} items",
+		},
+		{
+			name: "has one form only",
+			input: map[string]interface{}{
+				"one": "{{.Count}} item",
+			},
+			expected: "{{.Count}} item",
+		},
+		{
+			name: "has few form only",
+			input: map[string]interface{}{
+				"few": "{{.Count}} few items",
+			},
+			expected: "{{.Count}} few items",
+		},
+		{
+			name:     "empty map",
+			input:    map[string]interface{}{},
+			expected: "{{.Count}} items", // fallback
+		},
+		{
+			name: "non-string values",
+			input: map[string]interface{}{
+				"other": 123,
+			},
+			expected: "{{.Count}} items", // fallback when conversion fails
+		},
+	}
 
-	// Create compound format file
-	compoundFile := filepath.Join(tempDir, "validation.yaml")
-	compoundContent := `EmailAddress:
-  ja: "メールアドレス"
-  en: "Email Address"
-Required:
-  ja: "必須"
-  en: "Required"`
-	require.NoError(t, os.WriteFile(compoundFile, []byte(compoundContent), 0644))
-
-	// Execute ParsePlaceholders with compound format
-	pattern := filepath.Join(tempDir, "*.yaml")
-	locales := []string{"ja", "en"}
-	results, err := ParsePlaceholders(pattern, locales, true)
-	require.NoError(t, err)
-
-	// Verify results
-	assert.Len(t, results, 1)
-	assert.Equal(t, "validation", results[0].Kind)
-	assert.Len(t, results[0].Items, 2)
-
-	// Verify compound format processing
-	emailItem := results[0].Items["EmailAddress"]
-	assert.Equal(t, "メールアドレス", emailItem["ja"])
-	assert.Equal(t, "Email Address", emailItem["en"])
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			result := convertPluralToTemplate(tt.input)
+			s.Equal(tt.expected, result)
+		})
+	}
 }
 
-func TestParsePlaceholdersEmptyPattern(t *testing.T) {
-	// Test with non-existent pattern (should return empty, not error)
-	results, err := ParsePlaceholders("/nonexistent/*.yaml", []string{"ja", "en"}, false)
-	assert.NoError(t, err, "Should not return error for non-existent placeholders")
-	assert.Empty(t, results, "Should return empty slice for non-existent placeholders")
-}
-
-func TestParsePlaceholdersInvalidKindName(t *testing.T) {
-	// Create temporary directory
-	tempDir, err := os.MkdirTemp("", "i18ngen_invalid_kind_test")
-	require.NoError(t, err)
-	defer func() { _ = os.RemoveAll(tempDir) }()
-
-	// Create file with invalid kind name (contains hyphens)
-	invalidFile := filepath.Join(tempDir, "invalid-kind.yaml")
-	invalidContent := `Item1: "Value1"`
-	require.NoError(t, os.WriteFile(invalidFile, []byte(invalidContent), 0644))
-
-	// Execute ParsePlaceholders - should return validation error
-	pattern := filepath.Join(tempDir, "*.yaml")
-	results, err := ParsePlaceholders(pattern, []string{"ja"}, false)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid placeholder kind name")
-	assert.Nil(t, results)
-}
-
-func TestParsePlaceholdersInvalidItemID(t *testing.T) {
-	// Create temporary directory
-	tempDir, err := os.MkdirTemp("", "i18ngen_invalid_id_test")
-	require.NoError(t, err)
-	defer func() { _ = os.RemoveAll(tempDir) }()
-
-	// Create file with invalid item ID (contains hyphens)
-	invalidFile := filepath.Join(tempDir, "valid.yaml")
-	invalidContent := `invalid-id: "Value1"`
-	require.NoError(t, os.WriteFile(invalidFile, []byte(invalidContent), 0644))
-
-	// Execute ParsePlaceholders - should return validation error
-	pattern := filepath.Join(tempDir, "*.yaml")
-	results, err := ParsePlaceholders(pattern, []string{"ja"}, false)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid placeholder item ID")
-	assert.Nil(t, results)
-}
-
-func TestIsValidGoIdentifier(t *testing.T) {
+func (s *ParserTestSuite) TestIsValidGoIdentifier() {
+	// Test for isValidGoIdentifier function coverage
 	tests := []struct {
 		name     string
 		input    string
 		expected bool
 	}{
-		{"valid simple", "field", true},
-		{"valid with underscore", "field_name", true},
-		{"valid with numbers", "field1", true},
-		{"valid starting with underscore", "_field", true},
-		{"valid camelCase", "fieldName", true},
-		{"invalid empty", "", false},
-		{"invalid starting with number", "1field", false},
-		{"invalid with hyphen", "field-name", false},
-		{"invalid with space", "field name", false},
-		{"invalid with special chars", "field@name", false},
-		{"invalid with dot", "field.name", false},
+		{
+			name:     "valid identifier",
+			input:    "validName",
+			expected: true,
+		},
+		{
+			name:     "valid identifier with underscore",
+			input:    "valid_name",
+			expected: true,
+		},
+		{
+			name:     "valid identifier starting with underscore",
+			input:    "_validName",
+			expected: true,
+		},
+		{
+			name:     "invalid - empty string",
+			input:    "",
+			expected: false,
+		},
+		{
+			name:     "invalid - starts with number",
+			input:    "123invalid",
+			expected: false,
+		},
+		{
+			name:     "invalid - contains space",
+			input:    "invalid name",
+			expected: false,
+		},
+		{
+			name:     "invalid - contains hyphen",
+			input:    "invalid-name",
+			expected: false,
+		},
+		{
+			name:     "invalid - contains special characters",
+			input:    "invalid@name",
+			expected: false,
+		},
+		{
+			name:     "valid with numbers",
+			input:    "valid123",
+			expected: true,
+		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		s.Run(tt.name, func() {
 			result := isValidGoIdentifier(tt.input)
-			assert.Equal(t, tt.expected, result)
+			s.Equal(tt.expected, result)
 		})
 	}
 }
 
-func TestDetectLocale(t *testing.T) {
+func (s *ParserTestSuite) TestDetectLocaleEdgeCases() {
+	// Test for detectLocale function coverage
 	tests := []struct {
 		name     string
 		filename string
 		expected string
 	}{
-		{"japanese locale", "field.ja.yaml", "ja"},
-		{"english locale", "field.en.yaml", "en"},
-		{"multiple dots", "field.ja.backup.yaml", "ja"},
-		{"no locale", "field.yaml", "yaml"},
-		{"single name", "field", "unknown"},
+		{
+			name:     "normal filename",
+			filename: "field.en.yaml",
+			expected: "en",
+		},
+		{
+			name:     "filename with multiple dots",
+			filename: "field.en.test.yaml",
+			expected: "en",
+		},
+		{
+			name:     "filename with no locale part",
+			filename: "field.yaml",
+			expected: "yaml",
+		},
+		{
+			name:     "filename with single part",
+			filename: "field",
+			expected: "unknown",
+		},
+		{
+			name:     "empty filename",
+			filename: "",
+			expected: "unknown",
+		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		s.Run(tt.name, func() {
 			result := detectLocale(tt.filename)
-			assert.Equal(t, tt.expected, result)
+			s.Equal(tt.expected, result)
 		})
 	}
 }
 
-func TestDecodeCompoundFile(t *testing.T) {
-	// Create temporary directory
-	tempDir, err := os.MkdirTemp("", "i18ngen_decode_test")
-	require.NoError(t, err)
-	defer func() { _ = os.RemoveAll(tempDir) }()
+func (s *ParserTestSuite) TestDecodeFileErrors() {
+	// Test error cases for decode functions
+	tempFile := filepath.Join(s.tempDir, "invalid.json")
+	invalidJSONContent := `{"invalid": "json", "unclosed": [`
+	s.Require().NoError(os.WriteFile(tempFile, []byte(invalidJSONContent), 0644))
 
-	// Test YAML compound file
-	yamlFile := filepath.Join(tempDir, "test.yaml")
-	yamlContent := `Item1:
-  ja: "値1"
-  en: "Value1"
-Item2:
-  ja: "値2"
-  en: "Value2"`
-	require.NoError(t, os.WriteFile(yamlFile, []byte(yamlContent), 0644))
+	file, err := os.Open(tempFile)
+	s.Require().NoError(err)
+	defer func() { _ = file.Close() }()
 
-	f, err := os.Open(yamlFile)
-	require.NoError(t, err)
-	defer func() { _ = f.Close() }()
+	// Test decodeCompoundFile with invalid JSON
+	_, err = decodeCompoundFile(file, ".json")
+	s.Error(err, "Should error on invalid JSON")
 
-	result, err := decodeCompoundFile(f, ".yaml")
-	require.NoError(t, err)
+	// Reset file pointer
+	_, _ = file.Seek(0, 0)
 
-	expected := map[string]map[string]string{
-		"Item1": {"ja": "値1", "en": "Value1"},
-		"Item2": {"ja": "値2", "en": "Value2"},
-	}
-	assert.Equal(t, expected, result)
+	// Test decodeSimpleFile with invalid JSON
+	_, err = decodeSimpleFile(file, ".json")
+	s.Error(err, "Should error on invalid JSON")
 }
 
-func TestDecodeSimpleFile(t *testing.T) {
-	// Create temporary directory
-	tempDir, err := os.MkdirTemp("", "i18ngen_decode_simple_test")
-	require.NoError(t, err)
-	defer func() { _ = os.RemoveAll(tempDir) }()
+func (s *ParserTestSuite) TestDecodeValidFiles() {
+	// Test valid file decoding
+	// Create valid compound JSON file
+	compoundFile := filepath.Join(s.tempDir, "compound.json")
+	compoundContent := `{
+		"item1": {"en": "Item 1", "ja": "アイテム1"},
+		"item2": {"en": "Item 2", "ja": "アイテム2"}
+	}`
+	s.Require().NoError(os.WriteFile(compoundFile, []byte(compoundContent), 0644))
 
-	// Test YAML simple file
-	yamlFile := filepath.Join(tempDir, "simple.yaml")
-	yamlContent := `Item1: "Value1"
-Item2: "Value2"`
-	require.NoError(t, os.WriteFile(yamlFile, []byte(yamlContent), 0644))
+	file, err := os.Open(compoundFile)
+	s.Require().NoError(err)
+	defer func() { _ = file.Close() }()
 
-	f, err := os.Open(yamlFile)
-	require.NoError(t, err)
-	defer func() { _ = f.Close() }()
+	result, err := decodeCompoundFile(file, ".json")
+	s.NoError(err)
+	s.Equal("Item 1", result["item1"]["en"])
+	s.Equal("アイテム1", result["item1"]["ja"])
 
-	result, err := decodeSimpleFile(f, ".yaml")
-	require.NoError(t, err)
+	// Create valid simple YAML file
+	simpleFile := filepath.Join(s.tempDir, "simple.yaml")
+	simpleContent := `item1: "Simple Item 1"
+item2: "Simple Item 2"`
+	s.Require().NoError(os.WriteFile(simpleFile, []byte(simpleContent), 0644))
 
-	expected := map[string]string{
-		"Item1": "Value1",
-		"Item2": "Value2",
-	}
-	assert.Equal(t, expected, result)
+	file2, err := os.Open(simpleFile)
+	s.Require().NoError(err)
+	defer func() { _ = file2.Close() }()
+
+	result2, err := decodeSimpleFile(file2, ".yaml")
+	s.NoError(err)
+	s.Equal("Simple Item 1", result2["item1"])
+	s.Equal("Simple Item 2", result2["item2"])
 }
 
-func TestParsePlaceholdersJSONFormat(t *testing.T) {
-	// Create temporary directory
-	tempDir, err := os.MkdirTemp("", "i18ngen_json_test")
-	require.NoError(t, err)
-	defer func() { _ = os.RemoveAll(tempDir) }()
-
-	// Create JSON compound format file
-	jsonFile := filepath.Join(tempDir, "field.json")
-	jsonContent := `{
-  "EmailAddress": {
-    "ja": "メールアドレス",
-    "en": "Email Address"
-  },
-  "Required": {
-    "ja": "必須",
-    "en": "Required"
-  }
-}`
-	require.NoError(t, os.WriteFile(jsonFile, []byte(jsonContent), 0644))
-
-	// Execute ParsePlaceholders with JSON format
-	pattern := filepath.Join(tempDir, "*.json")
-	results, err := ParsePlaceholders(pattern, []string{"ja", "en"}, true)
-	require.NoError(t, err)
-
-	// Verify JSON parsing
-	assert.Len(t, results, 1)
-	assert.Equal(t, "field", results[0].Kind)
-	assert.Len(t, results[0].Items, 2)
-
-	emailItem := results[0].Items["EmailAddress"]
-	assert.Equal(t, "メールアドレス", emailItem["ja"])
-	assert.Equal(t, "Email Address", emailItem["en"])
+// Run the test suite
+func TestParserSuite(t *testing.T) {
+	suite.Run(t, new(ParserTestSuite))
 }

@@ -3,13 +3,30 @@ package model
 import (
 	"testing"
 
+	"github.com/hacomono-lib/go-i18ngen/internal/config"
 	"github.com/hacomono-lib/go-i18ngen/internal/templatex"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
 
-func TestProcessTemplateForDuplicates(t *testing.T) {
+type TemplateProcessorTestSuite struct {
+	suite.Suite
+	testConfig *config.Config
+}
+
+func (s *TemplateProcessorTestSuite) SetupSuite() {
+	s.testConfig = &config.Config{
+		Locales:           []string{"ja", "en"},
+		Compound:          true,
+		MessagesGlob:      "./messages/*.yaml",
+		PlaceholdersGlob:  "./placeholders/*.yaml",
+		OutputDir:         "./",
+		OutputPackage:     "i18n",
+		PluralPlaceholder: "Count",
+	}
+}
+
+func (s *TemplateProcessorTestSuite) TestProcessTemplateForDuplicates() {
 	tests := []struct {
 		name     string
 		template string
@@ -43,14 +60,14 @@ func TestProcessTemplateForDuplicates(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		s.Run(tt.name, func() {
 			result := processTemplateForDuplicates(tt.template, tt.fields)
-			assert.Equal(t, tt.expected, result)
+			s.Equal(tt.expected, result)
 		})
 	}
 }
 
-func TestProcessMessageTemplates(t *testing.T) {
+func (s *TemplateProcessorTestSuite) TestProcessMessageTemplates() {
 	templates := map[string]string{
 		"ja": "{{.name}}さん、{{.name}}さんのアカウント",
 		"en": "Welcome {{.name}}, to {{.name}}'s account!",
@@ -64,10 +81,10 @@ func TestProcessMessageTemplates(t *testing.T) {
 		"en": "Welcome {{.name1}}, to {{.name2}}'s account!",
 	}
 
-	assert.Equal(t, expected, result)
+	s.Equal(expected, result)
 }
 
-func TestProcessMessageTemplatesWithFieldInfos(t *testing.T) {
+func (s *TemplateProcessorTestSuite) TestProcessMessageTemplatesWithFieldInfos() {
 	testCases := []struct {
 		name       string
 		templates  map[string]string
@@ -132,15 +149,14 @@ func TestProcessMessageTemplatesWithFieldInfos(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
+		s.Run(tc.name, func() {
 			result := ProcessMessageTemplatesWithFieldInfos(tc.templates, tc.fieldInfos)
-			assert.Equal(t, tc.expected, result)
+			s.Equal(tc.expected, result)
 		})
 	}
 }
 
-// Tests for Build function
-func TestBuild(t *testing.T) {
+func (s *TemplateProcessorTestSuite) TestBuild() {
 	// Create test messages
 	messages := []MessageSource{
 		{
@@ -199,77 +215,80 @@ func TestBuild(t *testing.T) {
 
 	// Execute Build
 	locales := []string{"ja", "en"}
-	result, err := Build(messages, placeholders, locales)
-	require.NoError(t, err)
+	result, err := Build(messages, placeholders, locales, s.testConfig)
+	s.Require().NoError(err)
 
 	// Verify messages
-	assert.Len(t, result.Messages, 2)
+	s.Len(result.Messages, 2)
 
 	// Find messages by ID (order might vary)
 	var validationMsg, userWelcomeMsg *templatex.Message
 	for i := range result.Messages {
-		if result.Messages[i].ID == "ValidationError" {
+		switch result.Messages[i].ID {
+		case "ValidationError":
 			validationMsg = &result.Messages[i]
-		} else if result.Messages[i].ID == "UserWelcome" {
+		case "UserWelcome":
 			userWelcomeMsg = &result.Messages[i]
 		}
 	}
-	require.NotNil(t, validationMsg, "ValidationError message should exist")
-	require.NotNil(t, userWelcomeMsg, "UserWelcome message should exist")
+	s.Require().NotNil(validationMsg, "ValidationError message should exist")
+	s.Require().NotNil(userWelcomeMsg, "UserWelcome message should exist")
 
 	// Check ValidationError message
-	assert.Equal(t, "ValidationError", validationMsg.ID)
-	assert.Equal(t, "ValidationError", validationMsg.StructName)
-	assert.Len(t, validationMsg.Fields, 2)
+	s.Equal("ValidationError", validationMsg.ID)
+	s.Equal("ValidationError", validationMsg.StructName)
+	s.Len(validationMsg.Fields, 2)
 
 	// Find fields by type/template key (order might vary)
 	var fieldField, reasonField *templatex.Field
 	for i := range validationMsg.Fields {
-		if validationMsg.Fields[i].TemplateKey == "field" {
+		switch validationMsg.Fields[i].TemplateKey {
+		case "field":
 			fieldField = &validationMsg.Fields[i]
-		} else if validationMsg.Fields[i].TemplateKey == "reason" {
+		case "reason":
 			reasonField = &validationMsg.Fields[i]
 		}
 	}
-	require.NotNil(t, fieldField, "field should exist")
-	require.NotNil(t, reasonField, "reason should exist")
+	s.Require().NotNil(fieldField, "field should exist")
+	s.Require().NotNil(reasonField, "reason should exist")
 
 	// Check field types
-	assert.Equal(t, "Field", fieldField.FieldName)
-	assert.Equal(t, "FieldValue", fieldField.Type) // Auto-generated since "field" is not in placeholders
-	assert.Equal(t, "field", fieldField.TemplateKey)
+	s.Equal("Field", fieldField.FieldName)
+	s.Equal("FieldValue", fieldField.Type) // Auto-generated since "field" is not in placeholders
+	s.Equal("field", fieldField.TemplateKey)
 
-	assert.Equal(t, "Reason", reasonField.FieldName)
-	assert.Equal(t, "ReasonValue", reasonField.Type) // Auto-generated Value type
-	assert.Equal(t, "reason", reasonField.TemplateKey)
+	s.Equal("Reason", reasonField.FieldName)
+	s.Equal("ReasonValue", reasonField.Type) // Auto-generated Value type
+	s.Equal("reason", reasonField.TemplateKey)
 
 	// Check UserWelcome message with suffix notation
-	assert.Equal(t, "UserWelcome", userWelcomeMsg.ID)
-	assert.Len(t, userWelcomeMsg.Fields, 2)
+	s.Equal("UserWelcome", userWelcomeMsg.ID)
+	s.Len(userWelcomeMsg.Fields, 2)
 
 	// Find suffix-based fields (order might vary)
 	var nameUserField, nameOwnerField *templatex.Field
 	for i := range userWelcomeMsg.Fields {
-		if userWelcomeMsg.Fields[i].TemplateKey == "nameUser" {
+		switch userWelcomeMsg.Fields[i].TemplateKey {
+		case "nameUser":
 			nameUserField = &userWelcomeMsg.Fields[i]
-		} else if userWelcomeMsg.Fields[i].TemplateKey == "nameOwner" {
+		case "nameOwner":
 			nameOwnerField = &userWelcomeMsg.Fields[i]
 		}
 	}
-	require.NotNil(t, nameUserField, "nameUser field should exist")
-	require.NotNil(t, nameOwnerField, "nameOwner field should exist")
+	s.Require().NotNil(nameUserField, "nameUser field should exist")
+	s.Require().NotNil(nameOwnerField, "nameOwner field should exist")
 
 	// Check suffix-based field names
-	assert.Equal(t, "NameUser", nameUserField.FieldName)
-	assert.Equal(t, "NameValue", nameUserField.Type)
-	assert.Equal(t, "nameUser", nameUserField.TemplateKey)
+	s.Equal("NameUser", nameUserField.FieldName)
+	s.Equal("NameValue", nameUserField.Type)
+	s.Equal("nameUser", nameUserField.TemplateKey)
 
-	assert.Equal(t, "NameOwner", nameOwnerField.FieldName)
-	assert.Equal(t, "NameValue", nameOwnerField.Type)
-	assert.Equal(t, "nameOwner", nameOwnerField.TemplateKey)
+	s.Equal("NameOwner", nameOwnerField.FieldName)
+	s.Equal("NameValue", nameOwnerField.Type)
+	s.Equal("nameOwner", nameOwnerField.TemplateKey)
 
 	// Verify placeholders (total count includes auto-generated ones)
-	assert.GreaterOrEqual(t, len(result.Placeholders), 2, "Should have at least original placeholders")
+	s.GreaterOrEqual(len(result.Placeholders), 2, "Should have at least original placeholders")
 
 	// Check that auto-generated placeholder exists
 	var reasonPlaceholder *templatex.Placeholder
@@ -279,11 +298,11 @@ func TestBuild(t *testing.T) {
 			break
 		}
 	}
-	require.NotNil(t, reasonPlaceholder, "Auto-generated ReasonValue placeholder should exist")
-	assert.True(t, reasonPlaceholder.IsValue)
+	s.Require().NotNil(reasonPlaceholder, "Auto-generated ReasonValue placeholder should exist")
+	s.True(reasonPlaceholder.IsValue)
 }
 
-func TestBuildWithMessageStartingWithDigit(t *testing.T) {
+func (s *TemplateProcessorTestSuite) TestBuildWithMessageStartingWithDigit() {
 	// Test message ID starting with digit (should be prefixed with "Msg")
 	messages := []MessageSource{
 		{
@@ -298,15 +317,14 @@ func TestBuildWithMessageStartingWithDigit(t *testing.T) {
 		},
 	}
 
-	result, err := Build(messages, []PlaceholderSource{}, []string{"ja", "en"})
-	require.NoError(t, err)
+	result, err := Build(messages, []PlaceholderSource{}, []string{"ja", "en"}, s.testConfig)
+	s.Require().NoError(err)
 
 	// Verify struct name is prefixed with "Msg"
-	assert.Equal(t, "Msg404Error", result.Messages[0].StructName)
+	s.Equal("Msg404Error", result.Messages[0].StructName)
 }
 
-// Tests for BuildTemplates function
-func TestBuildTemplates(t *testing.T) {
+func (s *TemplateProcessorTestSuite) TestBuildTemplates() {
 	// Create test data
 	messages := []MessageSource{
 		{
@@ -336,29 +354,28 @@ func TestBuildTemplates(t *testing.T) {
 	// Execute BuildTemplates
 	locales := []string{"ja", "en"}
 	messageTemplates, placeholderTemplates, err := BuildTemplates(messages, placeholders, locales)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Verify message templates
-	assert.Len(t, messageTemplates, 1)
+	s.Len(messageTemplates, 1)
 	msgTemplate := messageTemplates[0]
-	assert.Equal(t, "TestMessage", msgTemplate.ID)
-	assert.Equal(t, "{{.field}}のテスト", msgTemplate.Templates["ja"])
-	assert.Equal(t, "Test for {{.field}}", msgTemplate.Templates["en"])
+	s.Equal("TestMessage", msgTemplate.ID)
+	s.Equal("{{.field}}のテスト", msgTemplate.Templates["ja"])
+	s.Equal("Test for {{.field}}", msgTemplate.Templates["en"])
 
 	// Verify placeholder templates
-	assert.Len(t, placeholderTemplates, 1)
+	s.Len(placeholderTemplates, 1)
 	phTemplate := placeholderTemplates[0]
-	assert.Equal(t, "Field", phTemplate.Name)
-	assert.True(t, phTemplate.HasLocaleFiles)
-	assert.Contains(t, phTemplate.LocaleTemplates, "EmailAddress")
+	s.Equal("Field", phTemplate.Name)
+	s.True(phTemplate.HasLocaleFiles)
+	s.Contains(phTemplate.LocaleTemplates, "EmailAddress")
 
 	emailTemplates := phTemplate.LocaleTemplates["EmailAddress"]
-	assert.Equal(t, "メールアドレス", emailTemplates["ja"])
-	assert.Equal(t, "Email Address", emailTemplates["en"])
+	s.Equal("メールアドレス", emailTemplates["ja"])
+	s.Equal("Email Address", emailTemplates["en"])
 }
 
-// Tests for generateStructName function
-func TestGenerateStructName(t *testing.T) {
+func (s *TemplateProcessorTestSuite) TestGenerateStructName() {
 	tests := []struct {
 		name     string
 		input    string
@@ -374,15 +391,14 @@ func TestGenerateStructName(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		s.Run(tt.name, func() {
 			result := generateStructName(tt.input)
-			assert.Equal(t, tt.expected, result)
+			s.Equal(tt.expected, result)
 		})
 	}
 }
 
-// Tests for FieldInfo methods
-func TestFieldInfoString(t *testing.T) {
+func (s *TemplateProcessorTestSuite) TestFieldInfoString() {
 	tests := []struct {
 		name     string
 		field    FieldInfo
@@ -394,14 +410,14 @@ func TestFieldInfoString(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		s.Run(tt.name, func() {
 			result := tt.field.String()
-			assert.Equal(t, tt.expected, result)
+			s.Equal(tt.expected, result)
 		})
 	}
 }
 
-func TestFieldInfoGenerateFieldName(t *testing.T) {
+func (s *TemplateProcessorTestSuite) TestFieldInfoGenerateFieldName() {
 	tests := []struct {
 		name     string
 		field    FieldInfo
@@ -414,14 +430,14 @@ func TestFieldInfoGenerateFieldName(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		s.Run(tt.name, func() {
 			result := tt.field.GenerateFieldName()
-			assert.Equal(t, tt.expected, result)
+			s.Equal(tt.expected, result)
 		})
 	}
 }
 
-func TestFieldInfoGenerateTemplateKey(t *testing.T) {
+func (s *TemplateProcessorTestSuite) TestFieldInfoGenerateTemplateKey() {
 	tests := []struct {
 		name     string
 		field    FieldInfo
@@ -434,24 +450,23 @@ func TestFieldInfoGenerateTemplateKey(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		s.Run(tt.name, func() {
 			result := tt.field.GenerateTemplateKey()
-			assert.Equal(t, tt.expected, result)
+			s.Equal(tt.expected, result)
 		})
 	}
 }
 
-// Test edge cases and error conditions
-func TestBuildEmptyInput(t *testing.T) {
+func (s *TemplateProcessorTestSuite) TestBuildEmptyInput() {
 	// Test with empty messages and placeholders
-	result, err := Build([]MessageSource{}, []PlaceholderSource{}, []string{"ja", "en"})
-	require.NoError(t, err)
+	result, err := Build([]MessageSource{}, []PlaceholderSource{}, []string{"ja", "en"}, s.testConfig)
+	s.Require().NoError(err)
 
-	assert.Empty(t, result.Messages)
-	assert.Empty(t, result.Placeholders)
+	s.Empty(result.Messages)
+	s.Empty(result.Placeholders)
 }
 
-func TestBuildWithEmptyLocales(t *testing.T) {
+func (s *TemplateProcessorTestSuite) TestBuildWithEmptyLocales() {
 	// Test with empty locales
 	messages := []MessageSource{
 		{
@@ -463,9 +478,173 @@ func TestBuildWithEmptyLocales(t *testing.T) {
 		},
 	}
 
-	result, err := Build(messages, []PlaceholderSource{}, []string{})
-	require.NoError(t, err)
+	result, err := Build(messages, []PlaceholderSource{}, []string{}, s.testConfig)
+	s.Require().NoError(err)
 
-	assert.Len(t, result.Messages, 1)
-	assert.Equal(t, "TestMessage", result.Messages[0].ID)
+	s.Len(result.Messages, 1)
+	s.Equal("TestMessage", result.Messages[0].ID)
+}
+
+// Run the test suite
+func (s *TemplateProcessorTestSuite) TestExtractTemplateFunctionsBasic() {
+	// Test the basic extractTemplateFunctions helper function
+	tests := []struct {
+		name             string
+		templateFunction string
+		expected         []string
+	}{
+		{
+			"no functions",
+			"",
+			nil,
+		},
+		{
+			"single function",
+			"| title",
+			[]string{"title"},
+		},
+		{
+			"multiple functions",
+			"| title | upper",
+			[]string{"title", "upper"},
+		},
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			result := extractTemplateFunctions(tt.templateFunction)
+			s.Equal(tt.expected, result)
+		})
+	}
+}
+
+func (s *TemplateProcessorTestSuite) TestBuildTemplateFunctionsMetadata() {
+	messages := []MessageSource{
+		{
+			ID: "ValidationError",
+			Templates: map[string]string{
+				"en": "{{.field | title}} is {{.status | upper}}",
+				"ja": "{{.field}}は{{.status}}です",
+			},
+			FieldInfos: []FieldInfo{
+				{Name: "field", Suffix: ""},
+				{Name: "status", Suffix: ""},
+			},
+		},
+		{
+			ID: "TransferMessage",
+			Templates: map[string]string{
+				"en": "From {{.entity:from | title}} to {{.entity:to}}",
+				"ja": "{{.entity:from}}から{{.entity:to}}へ",
+			},
+			FieldInfos: []FieldInfo{
+				{Name: "entity", Suffix: "from"},
+				{Name: "entity", Suffix: "to"},
+			},
+		},
+	}
+
+	result := BuildTemplateFunctionsMetadata(messages, []string{"en", "ja"})
+
+	expected := map[string]map[string]map[string][]string{
+		"ValidationError": {
+			"en": {
+				"field":  {"title"},
+				"status": {"upper"},
+			},
+		},
+		"TransferMessage": {
+			"en": {
+				"entityFrom": {"title"},
+			},
+		},
+	}
+
+	s.Equal(expected, result)
+}
+
+func (s *TemplateProcessorTestSuite) TestExtractTemplateFunctionsFromTemplate() {
+	tests := []struct {
+		name      string
+		template  string
+		fieldInfo FieldInfo
+		expected  []string
+	}{
+		{
+			"no functions",
+			"Simple {{.field}} message",
+			FieldInfo{Name: "field", Suffix: ""},
+			nil,
+		},
+		{
+			"single function",
+			"{{.field | title}} message",
+			FieldInfo{Name: "field", Suffix: ""},
+			[]string{"title"},
+		},
+		{
+			"suffix notation with function",
+			"From {{.entity:from | title}} to destination",
+			FieldInfo{Name: "entity", Suffix: "from"},
+			[]string{"title"},
+		},
+		{
+			"chained functions",
+			"{{.field | title | lower}} is processed",
+			FieldInfo{Name: "field", Suffix: ""},
+			[]string{"title", "lower"},
+		},
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			result := extractTemplateFunctionsFromTemplate(tt.template, tt.fieldInfo)
+			s.Equal(tt.expected, result)
+		})
+	}
+}
+
+func (s *TemplateProcessorTestSuite) TestExtractTemplateFunctionsEdgeCases() {
+	tests := []struct {
+		name             string
+		templateFunction string
+		expected         []string
+	}{
+		{
+			"empty string",
+			"",
+			nil,
+		},
+		{
+			"single function",
+			"| title",
+			[]string{"title"},
+		},
+		{
+			"multiple functions",
+			"| title | upper | lower",
+			[]string{"title", "upper", "lower"},
+		},
+		{
+			"whitespace handling",
+			"|  title  |  upper  ",
+			[]string{"title", "upper"},
+		},
+		{
+			"no leading pipe",
+			"title | upper",
+			[]string{"title", "upper"},
+		},
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			result := extractTemplateFunctions(tt.templateFunction)
+			s.Equal(tt.expected, result)
+		})
+	}
+}
+
+func TestTemplateProcessorSuite(t *testing.T) {
+	suite.Run(t, new(TemplateProcessorTestSuite))
 }

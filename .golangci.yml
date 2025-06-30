@@ -1,41 +1,10 @@
+version: "2"
 run:
-  timeout: 5m
   modules-download-mode: readonly
-
-linters-settings:
-  govet:
-    enable:
-      - shadow
-  gocyclo:
-    min-complexity: 20
-  dupl:
-    threshold: 100
-  goconst:
-    min-len: 2
-    min-occurrences: 2
-  misspell:
-    locale: US
-  lll:
-    line-length: 140
-  goimports:
-    local-prefixes: github.com/hacomono-lib/go-i18ngen
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - experimental
-      - opinionated
-      - performance
-      - style
-    disabled-checks:
-      - dupImport
-      - ifElseChain
-      - octalLiteral
-      - whyNoLint
-      - wrapperFunc
-      - deferInLoop
-
+  timeout: 2m
+  concurrency: 4
 linters:
-  disable-all: true
+  default: none
   enable:
     - bodyclose
     - copyloopvar
@@ -47,53 +16,94 @@ linters:
     - goconst
     - gocritic
     - gocyclo
-    - gofmt
-    - goimports
-    - mnd
     - goprintffuncname
     - gosec
-    - gosimple
     - govet
     - ineffassign
     - lll
     - misspell
+    - mnd
     - nakedret
     - noctx
     - nolintlint
     - rowserrcheck
     - staticcheck
-    - stylecheck
     - unconvert
     - unparam
     - unused
     - whitespace
-    - typecheck
-
-issues:
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - mnd
-        - goconst
-        - lll
-        - gosec
-        - gocyclo
-        - dupl
-        - gocritic
-    - path: testdata/
-      linters:
-        - all
-    - path: main\.go
-      linters:
-        - gochecknoinits
-    - path: (internal/parser|internal/config)/.*\.go
-      linters:
-        - gosec
-      text: "G304"
-    - linters:
-        - mnd
-      text: "(0600|0750|0755|0644|0400)"
-    - linters:
-        - mnd
-      text: "Magic number: (2|20)"
-  exclude-use-default: false 
+  settings:
+    dupl:
+      threshold: 100
+    goconst:
+      min-len: 2
+      min-occurrences: 2
+    gocritic:
+      disabled-checks:
+        - dupImport
+        - ifElseChain
+        - octalLiteral
+        - whyNoLint
+        - wrapperFunc
+        - deferInLoop
+      enabled-tags:
+        - diagnostic
+        - experimental
+        - opinionated
+        - performance
+        - style
+    gocyclo:
+      min-complexity: 20
+    govet:
+      enable:
+        - shadow
+    lll:
+      line-length: 140
+    misspell:
+      locale: US
+  exclusions:
+    generated: lax
+    rules:
+      - linters:
+          - dupl
+          - goconst
+          - gocritic
+          - gocyclo
+          - gosec
+          - lll
+          - mnd
+        path: _test\.go
+      - linters:
+          - all
+        path: testdata/
+      - linters:
+          - gochecknoinits
+        path: main\.go
+      - linters:
+          - gosec
+        path: (internal/parser|internal/config)/.*\.go
+        text: G304
+      - linters:
+          - mnd
+        text: (0600|0750|0755|0644|0400)
+      - linters:
+          - mnd
+        text: 'Magic number: (2|20)'
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/hacomono-lib/go-i18ngen
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

@@ -42,12 +42,12 @@ func ParseMessages(pattern string) ([]model.MessageSource, error) {
 		defer func() { _ = f.Close() }()
 
 		ext := filepath.Ext(file)
-		data, err := decodeMessageFile(f, ext)
+		data, err := decodeMessageFileWithRaw(f, ext)
 		if err != nil {
 			return nil, fmt.Errorf("failed to decode message file %q (ext: %s): %w", file, ext, err)
 		}
 
-		for id, localeTemplates := range data {
+		for id, localeTemplates := range data.Templates {
 			// Validate all locales for duplicate placeholders, complexity, and safety
 			for locale, template := range localeTemplates {
 				if err := validateNoDuplicatePlaceholders(template); err != nil {
@@ -66,10 +66,17 @@ func ParseMessages(pattern string) ([]model.MessageSource, error) {
 			}
 			fieldInfos := extractFieldInfos(primaryTemplate)
 
+			// Get raw templates for this message ID
+			rawTemplates := data.RawTemplates[id]
+			if rawTemplates == nil {
+				rawTemplates = make(map[string]interface{})
+			}
+
 			results = append(results, model.MessageSource{
-				ID:         id,
-				Templates:  localeTemplates,
-				FieldInfos: fieldInfos,
+				ID:           id,
+				Templates:    localeTemplates,
+				RawTemplates: rawTemplates,
+				FieldInfos:   fieldInfos,
 			})
 		}
 	}
@@ -213,24 +220,65 @@ func extractFieldInfos(tmpl string) []model.FieldInfo {
 	return results
 }
 
-func decodeMessageFile(file *os.File, ext string) (map[string]map[string]string, error) {
+// MessageFileData holds both simplified and raw template data
+type MessageFileData struct {
+	Templates    map[string]map[string]string      // simplified templates for processing
+	RawTemplates map[string]map[string]interface{} // raw templates for documentation
+}
+
+func decodeMessageFileWithRaw(file *os.File, ext string) (*MessageFileData, error) {
 	// Read file content once
 	content, err := os.ReadFile(file.Name())
 	if err != nil {
 		return nil, err
 	}
 
+	result := &MessageFileData{
+		Templates:    make(map[string]map[string]string),
+		RawTemplates: make(map[string]map[string]interface{}),
+	}
+
 	// First try compound format (map[string]map[string]string)
 	var compoundData map[string]map[string]string
 	if ext == jsonExt {
 		if jsonErr := json.Unmarshal(content, &compoundData); jsonErr == nil {
-			// Return compound format as-is
-			return compoundData, nil
+			result.Templates = compoundData
+			// Convert to interface{} for raw templates
+			for msgID, localeMap := range compoundData {
+				result.RawTemplates[msgID] = make(map[string]interface{})
+				for locale, template := range localeMap {
+					result.RawTemplates[msgID][locale] = template
+				}
+			}
+			return result, nil
 		}
 	} else {
 		if yamlErr := yaml.Unmarshal(content, &compoundData); yamlErr == nil {
-			// Return compound format as-is
-			return compoundData, nil
+			result.Templates = compoundData
+			// Convert to interface{} for raw templates
+			for msgID, localeMap := range compoundData {
+				result.RawTemplates[msgID] = make(map[string]interface{})
+				for locale, template := range localeMap {
+					result.RawTemplates[msgID][locale] = template
+				}
+			}
+			return result, nil
+		}
+	}
+
+	// Try mixed format that supports both strings and pluralization objects
+	var mixedData map[string]map[string]interface{}
+	if ext == jsonExt {
+		if jsonErr := json.Unmarshal(content, &mixedData); jsonErr == nil {
+			result.Templates = convertMixedToStringMap(mixedData)
+			result.RawTemplates = mixedData
+			return result, nil
+		}
+	} else {
+		if yamlErr := yaml.Unmarshal(content, &mixedData); yamlErr == nil {
+			result.Templates = convertMixedToStringMap(mixedData)
+			result.RawTemplates = mixedData
+			return result, nil
 		}
 	}
 
@@ -246,11 +294,72 @@ func decodeMessageFile(file *os.File, ext string) (map[string]map[string]string,
 	}
 
 	// Convert simple format to compound format
-	result := make(map[string]map[string]string)
 	for id, template := range data {
-		result[id] = map[string]string{
+		result.Templates[id] = map[string]string{
 			"default": template, // Use "default" as locale for simple format
+		}
+		result.RawTemplates[id] = map[string]interface{}{
+			"default": template,
 		}
 	}
 	return result, nil
+}
+
+// convertMixedToStringMap converts mixed format (string or pluralization object) to string-only format
+func convertMixedToStringMap(mixedData map[string]map[string]interface{}) map[string]map[string]string {
+	result := make(map[string]map[string]string)
+
+	for messageID, localeData := range mixedData {
+		result[messageID] = make(map[string]string)
+
+		for locale, value := range localeData {
+			switch v := value.(type) {
+			case string:
+				// Simple string template
+				result[messageID][locale] = v
+			case map[string]interface{}:
+				// Pluralization object - convert to go-i18n format
+				result[messageID][locale] = convertPluralToTemplate(v)
+			case map[interface{}]interface{}:
+				// YAML can parse as map[interface{}]interface{}, convert it
+				stringMap := make(map[string]interface{})
+				for k, val := range v {
+					if str, ok := k.(string); ok {
+						stringMap[str] = val
+					}
+				}
+				result[messageID][locale] = convertPluralToTemplate(stringMap)
+			default:
+				// Fallback to string representation
+				result[messageID][locale] = fmt.Sprintf("%v", v)
+			}
+		}
+	}
+
+	return result
+}
+
+// convertPluralToTemplate converts plural forms to a single template with go-i18n format
+func convertPluralToTemplate(pluralMap map[string]interface{}) string {
+	// For now, prioritize "other" form, then "one", then any available
+	if other, exists := pluralMap["other"]; exists {
+		if str, ok := other.(string); ok {
+			return str
+		}
+	}
+
+	if one, exists := pluralMap["one"]; exists {
+		if str, ok := one.(string); ok {
+			return str
+		}
+	}
+
+	// Return first available form
+	for _, value := range pluralMap {
+		if str, ok := value.(string); ok {
+			return str
+		}
+	}
+
+	return "{{.Count}} items" // fallback
 }
