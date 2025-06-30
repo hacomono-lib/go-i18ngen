@@ -483,6 +483,167 @@ func (s *TemplateProcessorTestSuite) TestBuildWithEmptyLocales() {
 }
 
 // Run the test suite
+func (s *TemplateProcessorTestSuite) TestExtractTemplateFunctionsBasic() {
+	// Test the basic extractTemplateFunctions helper function
+	tests := []struct {
+		name             string
+		templateFunction string
+		expected         []string
+	}{
+		{
+			"no functions",
+			"",
+			nil,
+		},
+		{
+			"single function",
+			"| title",
+			[]string{"title"},
+		},
+		{
+			"multiple functions",
+			"| title | upper",
+			[]string{"title", "upper"},
+		},
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			result := extractTemplateFunctions(tt.templateFunction)
+			s.Equal(tt.expected, result)
+		})
+	}
+}
+
+func (s *TemplateProcessorTestSuite) TestBuildTemplateFunctionsMetadata() {
+	messages := []MessageSource{
+		{
+			ID: "ValidationError",
+			Templates: map[string]string{
+				"en": "{{.field | title}} is {{.status | upper}}",
+				"ja": "{{.field}}は{{.status}}です",
+			},
+			FieldInfos: []FieldInfo{
+				{Name: "field", Suffix: ""},
+				{Name: "status", Suffix: ""},
+			},
+		},
+		{
+			ID: "TransferMessage",
+			Templates: map[string]string{
+				"en": "From {{.entity:from | title}} to {{.entity:to}}",
+				"ja": "{{.entity:from}}から{{.entity:to}}へ",
+			},
+			FieldInfos: []FieldInfo{
+				{Name: "entity", Suffix: "from"},
+				{Name: "entity", Suffix: "to"},
+			},
+		},
+	}
+
+	result := BuildTemplateFunctionsMetadata(messages, []string{"en", "ja"})
+
+	expected := map[string]map[string]map[string][]string{
+		"ValidationError": {
+			"en": {
+				"field":  {"title"},
+				"status": {"upper"},
+			},
+			"ja": {},
+		},
+		"TransferMessage": {
+			"en": {
+				"entityFrom": {"title"},
+			},
+			"ja": {},
+		},
+	}
+
+	s.Equal(expected, result)
+}
+
+func (s *TemplateProcessorTestSuite) TestExtractTemplateFunctionsFromTemplate() {
+	tests := []struct {
+		name      string
+		template  string
+		fieldInfo FieldInfo
+		expected  []string
+	}{
+		{
+			"no functions",
+			"Simple {{.field}} message",
+			FieldInfo{Name: "field", Suffix: ""},
+			nil,
+		},
+		{
+			"single function",
+			"{{.field | title}} message",
+			FieldInfo{Name: "field", Suffix: ""},
+			[]string{"title"},
+		},
+		{
+			"suffix notation with function",
+			"From {{.entity:from | title}} to destination",
+			FieldInfo{Name: "entity", Suffix: "from"},
+			[]string{"title"},
+		},
+		{
+			"chained functions",
+			"{{.field | title | lower}} is processed",
+			FieldInfo{Name: "field", Suffix: ""},
+			[]string{"title", "lower"},
+		},
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			result := extractTemplateFunctionsFromTemplate(tt.template, tt.fieldInfo)
+			s.Equal(tt.expected, result)
+		})
+	}
+}
+
+func (s *TemplateProcessorTestSuite) TestExtractTemplateFunctionsEdgeCases() {
+	tests := []struct {
+		name             string
+		templateFunction string
+		expected         []string
+	}{
+		{
+			"empty string",
+			"",
+			nil,
+		},
+		{
+			"single function",
+			"| title",
+			[]string{"title"},
+		},
+		{
+			"multiple functions",
+			"| title | upper | lower",
+			[]string{"title", "upper", "lower"},
+		},
+		{
+			"whitespace handling",
+			"|  title  |  upper  ",
+			[]string{"title", "upper"},
+		},
+		{
+			"no leading pipe",
+			"title | upper",
+			[]string{"title", "upper"},
+		},
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			result := extractTemplateFunctions(tt.templateFunction)
+			s.Equal(tt.expected, result)
+		})
+	}
+}
+
 func TestTemplateProcessorSuite(t *testing.T) {
 	suite.Run(t, new(TemplateProcessorTestSuite))
 }

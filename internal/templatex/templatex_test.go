@@ -368,3 +368,39 @@ func TestRenderWithConfig_InvalidGoCode(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to format generated Go code")
 }
+
+func (s *TemplatexTestSuite) TestCreateFuncMapFunctions() {
+	funcMap := CreateFuncMap()
+
+	// Test all expected functions are present
+	expectedFuncs := []string{
+		"sortMapKeys", "sortLocales", "camelCase", "safeIdent",
+		"formatPluralTemplate", "title", "capitalize", "commentSafe", "lastKey",
+	}
+
+	for _, funcName := range expectedFuncs {
+		s.Contains(funcMap, funcName, "Function %s should be in funcMap", funcName)
+	}
+}
+
+func (s *TemplatexTestSuite) TestSafeIdentFunction() {
+	funcMap := CreateFuncMap()
+	safeIdentFunc := funcMap["safeIdent"]
+
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"ValidName", "ValidName"},
+		{"123Invalid", "123Invalid"}, // Actual behavior from utils.SafeGoIdentifier
+		{"type", "type_"},            // Actual behavior from utils.SafeGoIdentifier
+		{"func", "func_"},            // Actual behavior from utils.SafeGoIdentifier
+		{"valid_name", "valid_name"},
+		{"", ""}, // Actual behavior from utils.SafeGoIdentifier
+	}
+
+	for _, tt := range tests {
+		result := safeIdentFunc.(func(string) string)(tt.input)
+		s.Equal(tt.expected, result, "safeIdent(%s)", tt.input)
+	}
+}

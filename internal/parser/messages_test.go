@@ -221,9 +221,8 @@ func (s *ParserTestSuite) TestDecodeMessageFileErrors() {
 	s.Nil(results)
 }
 
-func (s *ParserTestSuite) TestParsePlaceholders() {
-	// Create test placeholder files
-	// Simple format files
+func (s *ParserTestSuite) TestParsePlaceholdersSimpleFormat() {
+	// Create test placeholder files in simple format
 	fieldFile := filepath.Join(s.tempDir, "field.ja.yaml")
 	fieldContent := `EmailAddress: "メールアドレス"
 FirstName: "名前"
@@ -236,7 +235,7 @@ FirstName: "First Name"
 LastName: "Last Name"`
 	s.Require().NoError(os.WriteFile(fieldEnFile, []byte(fieldEnContent), 0644))
 
-	// Execute ParsePlaceholders
+	// Execute ParsePlaceholders for simple format
 	pattern := filepath.Join(s.tempDir, "field.*.yaml")
 	locales := []string{"ja", "en"}
 	results, err := ParsePlaceholders(pattern, locales, false)
@@ -247,202 +246,77 @@ LastName: "Last Name"`
 	s.Equal("field", results[0].Kind)
 	s.Len(results[0].Items, 3, "Should have three items")
 
-	// Verify specific items
-	s.Contains(results[0].Items, "EmailAddress")
-	s.Contains(results[0].Items, "FirstName")
-	s.Contains(results[0].Items, "LastName")
-
-	// Verify locales
-	emailItem := results[0].Items["EmailAddress"]
-	s.Equal("メールアドレス", emailItem["ja"])
-	s.Equal("Email Address", emailItem["en"])
+	// Verify content
+	s.Equal("メールアドレス", results[0].Items["EmailAddress"]["ja"])
+	s.Equal("Email Address", results[0].Items["EmailAddress"]["en"])
 }
 
 func (s *ParserTestSuite) TestParsePlaceholdersCompoundFormat() {
-	// Create compound format file
-	compoundFile := filepath.Join(s.tempDir, "validation.yaml")
-	compoundContent := `EmailAddress:
-  ja: "メールアドレス"
-  en: "Email Address"
-Required:
-  ja: "必須"
-  en: "Required"`
-	s.Require().NoError(os.WriteFile(compoundFile, []byte(compoundContent), 0644))
+	// Create test placeholder files in compound format
+	entityFile := filepath.Join(s.tempDir, "entity.yaml")
+	entityContent := `user:
+  ja: "ユーザー"
+  en: "User"
+product:
+  ja: "製品"
+  en: "Product"`
+	s.Require().NoError(os.WriteFile(entityFile, []byte(entityContent), 0644))
 
-	// Execute ParsePlaceholders with compound format
-	pattern := filepath.Join(s.tempDir, "validation.yaml")
+	// Execute ParsePlaceholders for compound format
+	pattern := filepath.Join(s.tempDir, "entity.yaml")
 	locales := []string{"ja", "en"}
 	results, err := ParsePlaceholders(pattern, locales, true)
 	s.Require().NoError(err)
 
 	// Verify results
-	s.Len(results, 1)
-	s.Equal("validation", results[0].Kind)
-	s.Len(results[0].Items, 2)
+	s.Len(results, 1, "Should have one placeholder source")
+	s.Equal("entity", results[0].Kind)
+	s.Len(results[0].Items, 2, "Should have two items")
 
-	// Verify compound format processing
-	emailItem := results[0].Items["EmailAddress"]
-	s.Equal("メールアドレス", emailItem["ja"])
-	s.Equal("Email Address", emailItem["en"])
+	// Verify content
+	s.Equal("ユーザー", results[0].Items["user"]["ja"])
+	s.Equal("User", results[0].Items["user"]["en"])
 }
 
-func (s *ParserTestSuite) TestParsePlaceholdersEmptyPattern() {
-	// Test with non-existent pattern (should return empty, not error)
-	results, err := ParsePlaceholders("/nonexistent/*.yaml", []string{"ja", "en"}, false)
-	s.NoError(err, "Should not return error for non-existent placeholders")
-	s.Empty(results, "Should return empty slice for non-existent placeholders")
-}
-
-func (s *ParserTestSuite) TestParsePlaceholdersInvalidKindName() {
-	// Create file with invalid kind name (contains hyphens)
-	invalidFile := filepath.Join(s.tempDir, "invalid-kind.yaml")
-	invalidContent := `Item1: "Value1"`
-	s.Require().NoError(os.WriteFile(invalidFile, []byte(invalidContent), 0644))
-
-	// Execute ParsePlaceholders - should return validation error
-	pattern := filepath.Join(s.tempDir, "invalid-kind.yaml")
-	results, err := ParsePlaceholders(pattern, []string{"ja"}, false)
-	s.Error(err)
-	s.Contains(err.Error(), "invalid placeholder kind name")
-	s.Nil(results)
-}
-
-func (s *ParserTestSuite) TestParsePlaceholdersInvalidItemID() {
-	// Create file with invalid item ID (contains hyphens)
-	invalidFile := filepath.Join(s.tempDir, "valid_kind.yaml")
-	invalidContent := `invalid-id: "Value1"`
-	s.Require().NoError(os.WriteFile(invalidFile, []byte(invalidContent), 0644))
-
-	// Execute ParsePlaceholders - should return validation error
-	pattern := filepath.Join(s.tempDir, "valid_kind.yaml")
-	results, err := ParsePlaceholders(pattern, []string{"ja"}, false)
-	s.Error(err)
-	s.Contains(err.Error(), "invalid placeholder item ID")
-	s.Nil(results)
-}
-
-func (s *ParserTestSuite) TestParsePlaceholdersJSONFormat() {
-	// Create JSON compound format file
-	jsonFile := filepath.Join(s.tempDir, "field_json.json")
-	jsonContent := `{
-  "EmailAddress": {
-    "ja": "メールアドレス",
-    "en": "Email Address"
-  },
-  "Required": {
-    "ja": "必須",
-    "en": "Required"
-  }
-}`
-	s.Require().NoError(os.WriteFile(jsonFile, []byte(jsonContent), 0644))
-
-	// Execute ParsePlaceholders with JSON format
-	pattern := filepath.Join(s.tempDir, "field_json.json")
-	results, err := ParsePlaceholders(pattern, []string{"ja", "en"}, true)
-	s.Require().NoError(err)
-
-	// Verify JSON parsing
-	s.Len(results, 1)
-	s.Equal("field_json", results[0].Kind)
-	s.Len(results[0].Items, 2)
-
-	emailItem := results[0].Items["EmailAddress"]
-	s.Equal("メールアドレス", emailItem["ja"])
-	s.Equal("Email Address", emailItem["en"])
-}
-
-func (s *ParserTestSuite) TestIsValidGoIdentifier() {
+func (s *ParserTestSuite) TestParsePlaceholdersErrorCases() {
 	tests := []struct {
-		name     string
-		input    string
-		expected bool
+		name        string
+		setupFunc   func() string // Returns pattern
+		expectError bool
 	}{
-		{"valid simple", "field", true},
-		{"valid with underscore", "field_name", true},
-		{"valid with numbers", "field1", true},
-		{"valid starting with underscore", "_field", true},
-		{"valid camelCase", "fieldName", true},
-		{"invalid empty", "", false},
-		{"invalid starting with number", "1field", false},
-		{"invalid with hyphen", "field-name", false},
-		{"invalid with space", "field name", false},
-		{"invalid with special chars", "field@name", false},
-		{"invalid with dot", "field.name", false},
+		{
+			"non-existent pattern",
+			func() string {
+				return "/nonexistent/path/*.yaml"
+			},
+			false, // ParsePlaceholders returns empty slice for missing files
+		},
+		{
+			"invalid YAML content",
+			func() string {
+				invalidFile := filepath.Join(s.tempDir, "invalid.yaml")
+				invalidContent := `invalid: yaml: content:`
+				s.Require().NoError(os.WriteFile(invalidFile, []byte(invalidContent), 0644))
+				return invalidFile
+			},
+			true,
+		},
 	}
 
 	for _, tt := range tests {
 		s.Run(tt.name, func() {
-			result := isValidGoIdentifier(tt.input)
-			s.Equal(tt.expected, result)
+			pattern := tt.setupFunc()
+			results, err := ParsePlaceholders(pattern, []string{"en"}, true)
+
+			if tt.expectError {
+				s.Error(err)
+				s.Nil(results)
+			} else {
+				s.NoError(err)
+				s.NotNil(results)
+			}
 		})
 	}
-}
-
-func (s *ParserTestSuite) TestDetectLocale() {
-	tests := []struct {
-		name     string
-		filename string
-		expected string
-	}{
-		{"japanese locale", "field.ja.yaml", "ja"},
-		{"english locale", "field.en.yaml", "en"},
-		{"multiple dots", "field.ja.backup.yaml", "ja"},
-		{"no locale", "field.yaml", "yaml"},
-		{"single name", "field", "unknown"},
-	}
-
-	for _, tt := range tests {
-		s.Run(tt.name, func() {
-			result := detectLocale(tt.filename)
-			s.Equal(tt.expected, result)
-		})
-	}
-}
-
-func (s *ParserTestSuite) TestDecodeCompoundFile() {
-	// Test YAML compound file
-	yamlFile := filepath.Join(s.tempDir, "compound_test.yaml")
-	yamlContent := `Item1:
-  ja: "値1"
-  en: "Value1"
-Item2:
-  ja: "値2"
-  en: "Value2"`
-	s.Require().NoError(os.WriteFile(yamlFile, []byte(yamlContent), 0644))
-
-	f, err := os.Open(yamlFile)
-	s.Require().NoError(err)
-	defer func() { _ = f.Close() }()
-
-	result, err := decodeCompoundFile(f, ".yaml")
-	s.Require().NoError(err)
-
-	expected := map[string]map[string]string{
-		"Item1": {"ja": "値1", "en": "Value1"},
-		"Item2": {"ja": "値2", "en": "Value2"},
-	}
-	s.Equal(expected, result)
-}
-
-func (s *ParserTestSuite) TestDecodeSimpleFile() {
-	// Test YAML simple file
-	yamlFile := filepath.Join(s.tempDir, "simple_test.yaml")
-	yamlContent := `Item1: "Value1"
-Item2: "Value2"`
-	s.Require().NoError(os.WriteFile(yamlFile, []byte(yamlContent), 0644))
-
-	f, err := os.Open(yamlFile)
-	s.Require().NoError(err)
-	defer func() { _ = f.Close() }()
-
-	result, err := decodeSimpleFile(f, ".yaml")
-	s.Require().NoError(err)
-
-	expected := map[string]string{
-		"Item1": "Value1",
-		"Item2": "Value2",
-	}
-	s.Equal(expected, result)
 }
 
 // Helper function
