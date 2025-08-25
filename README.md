@@ -666,9 +666,9 @@ make pre-commit    # Quick checks before committing
 
 ```bash
 # Using Docker Compose (recommended)
-docker-compose run dev     # Start development environment
-docker-compose run test    # Run tests in Docker
-docker-compose run lint    # Run linter in Docker
+docker compose run dev     # Start development environment
+docker compose run test    # Run tests in Docker
+docker compose run lint    # Run linter in Docker
 
 # Using Docker directly
 make docker-build          # Build Docker image
@@ -727,7 +727,7 @@ The project uses specific versions of development tools to ensure consistency be
 
 ```bash
 # To update golangci-lint version, edit this line in Makefile:
-GOLANGCI_LINT_VERSION=v1.61.0
+GOLANGCI_LINT_VERSION=v2.4.0
 
 # Then run to update local tools:
 make install-tools
@@ -754,7 +754,7 @@ go-i18ngen/
 ├── .github/               # GitHub Actions CI/CD workflows
 ├── Dockerfile             # Production Docker image
 ├── Dockerfile.dev         # Development Docker image  
-├── docker-compose.yml     # Development environment
+├── docker compose.yml     # Development environment
 ├── Makefile              # Development commands and targets
 └── .golangci.yml         # Linter configuration
 ```
@@ -770,7 +770,7 @@ go-i18ngen/
 
 2. **Tests failing on different OS**
    ```bash
-   docker-compose run test  # Run in standardized environment
+   docker compose run test  # Run in standardized environment
    ```
 
 3. **Build fails with Go version mismatch**
