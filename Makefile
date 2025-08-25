@@ -9,7 +9,8 @@ GOFMT=gofmt
 GOLINT=golangci-lint
 
 # golangci-lint version (single source of truth - CI reads this value)
-GOLANGCI_LINT_VERSION=v2.2.1
+GOLANGCI_LINT_VERSION=v2.4.0
+GOSEC_VERSION=latest
 
 # Binary info
 BINARY_NAME=go-i18ngen
@@ -45,7 +46,7 @@ fmt: ## Format code
 	$(GOFMT) -s -w .
 
 .PHONY: lint
-lint: install-golangci-lint ## Run linter
+lint: install-tools ## Run linter
 	$$(go env GOPATH)/bin/golangci-lint run --timeout=5m
 
 .PHONY: test
@@ -120,17 +121,25 @@ run: ## Run the application with example config
 	$(GOCMD) run . --help
 
 .PHONY: dev-setup
-dev-setup: deps install-golangci-lint ## Setup development environment
+dev-setup: deps install-tools ## Setup development environment
 	@echo "Development environment setup complete"
 
-.PHONY: install-golangci-lint
-install-golangci-lint: ## Install golangci-lint with specified version
-	@if ! $$(go env GOPATH)/bin/golangci-lint version 2>/dev/null | grep -q "$$(echo $(GOLANGCI_LINT_VERSION) | sed 's/^v//')"; then \
+.PHONY: install-tools
+install-tools:
+	@echo "Checking and installing development tools..."
+	@if ! command -v golangci-lint >/dev/null 2>&1 || [ "$$(golangci-lint version 2>/dev/null | sed 's/version /v/' | grep -oE 'v([0-9]+\.[0-9]+\.[0-9]+)')" != "$(GOLANGCI_LINT_VERSION)" ]; then \
 		echo "Installing golangci-lint $(GOLANGCI_LINT_VERSION)..."; \
 		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin $(GOLANGCI_LINT_VERSION); \
 	else \
 		echo "golangci-lint $(GOLANGCI_LINT_VERSION) already installed"; \
 	fi
+	@if ! command -v gosec >/dev/null 2>&1; then \
+		echo "Installing gosec $(GOSEC_VERSION)..."; \
+		go install github.com/securego/gosec/v2/cmd/gosec@$(GOSEC_VERSION); \
+	else \
+		echo "gosec already installed"; \
+	fi
+	@echo "Development tools check completed"
 
 .PHONY: check
 check: fmt lint test ## Run all checks (format, lint, test)

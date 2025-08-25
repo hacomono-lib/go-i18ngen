@@ -2,7 +2,7 @@ services:
   dev:
     build:
       context: .
-      dockerfile: Dockerfile.dev
+      target: dev
     volumes:
       - .:/workspace
       - go-mod-cache:/go/pkg/mod
@@ -10,13 +10,17 @@ services:
     working_dir: /workspace
     environment:
       - CGO_ENABLED=0
+      - GOOS=linux
+      - GOARCH=amd64
     command: bash
+    stdin_open: true
+    tty: true
 
   # Service for running tests in isolated environment
   test:
     build:
       context: .
-      dockerfile: Dockerfile.dev
+      target: dev
     volumes:
       - .:/workspace
       - go-mod-cache:/go/pkg/mod
@@ -28,7 +32,7 @@ services:
   lint:
     build:
       context: .
-      dockerfile: Dockerfile.dev
+      target: dev
     volumes:
       - .:/workspace
       - go-mod-cache:/go/pkg/mod

@@ -1,5 +1,35 @@
+# Development environment Dockerfile
+ARG GO_VERSION=1.25
+FROM golang:${GO_VERSION}-alpine AS dev
+
+# Install development tools
+RUN apk add --no-cache \
+    git \
+    curl \
+    bash \
+    make \
+    gcc \
+    musl-dev \
+    binutils-gold
+
+# Copy Makefile first to leverage layer caching
+COPY Makefile ./
+
+# Install golangci-lint
+RUN make install-tools
+
+# Set working directory
+WORKDIR /workspace
+
+# Copy go mod files for dependency caching
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Default command
+CMD ["bash"]
+
 # Build stage
-FROM golang:1.23-alpine AS builder
+FROM golang:${GO_VERSION}-alpine AS builder
 
 # Install build dependencies
 RUN apk add --no-cache git make
@@ -36,4 +66,4 @@ USER i18ngen
 
 # Set entrypoint
 ENTRYPOINT ["i18ngen"]
-CMD ["--help"] 
+CMD ["--help"]
