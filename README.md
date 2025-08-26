@@ -24,7 +24,6 @@ go-i18ngen is a CLI tool that automatically generates type-safe Go code for inte
 - ✅ **Type-safe message construction** - No more string concatenation or runtime errors
 - ✅ **CLDR pluralization support** - Full Unicode CLDR plural rules powered by go-i18n
 - ✅ **Automatic template rendering** - Built-in Go template processing with placeholders
-- ✅ **Template functions** - Essential string manipulation (title, upper, lower)
 - ✅ **Suffix notation** - Meaningful parameter names with `:suffix` syntax
 - ✅ **Locale fallback handling** - Graceful degradation when translations are missing
 - ✅ **Compile-time validation** - Catch missing parameters at build time
@@ -787,7 +786,6 @@ The `testdata/` directory contains working examples that demonstrate various fea
 
 - **Basic message localization**
 - **Pluralization with CLDR rules**
-- **Template functions usage**
 - **Suffix notation for complex messages**
 - **Multi-language support**
 - **Error handling patterns**
