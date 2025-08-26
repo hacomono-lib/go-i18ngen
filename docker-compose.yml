@@ -16,29 +16,6 @@ services:
     stdin_open: true
     tty: true
 
-  # Service for running tests in isolated environment
-  test:
-    build:
-      context: .
-      target: dev
-    volumes:
-      - .:/workspace
-      - go-mod-cache:/go/pkg/mod
-      - go-build-cache:/root/.cache/go-build
-    working_dir: /workspace
-    command: make test
-
-  # Service for running linter
-  lint:
-    build:
-      context: .
-      target: dev
-    volumes:
-      - .:/workspace
-      - go-mod-cache:/go/pkg/mod
-    working_dir: /workspace
-    command: make lint
-
 volumes:
   go-mod-cache:
   go-build-cache: 

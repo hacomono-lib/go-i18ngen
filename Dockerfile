@@ -2,6 +2,9 @@
 ARG GO_VERSION=1.25
 FROM golang:${GO_VERSION}-alpine AS dev
 
+# Disable VCS stamping to avoid git issues in container
+ENV GOFLAGS="-buildvcs=false"
+
 # Install development tools
 RUN apk add --no-cache \
     git \
