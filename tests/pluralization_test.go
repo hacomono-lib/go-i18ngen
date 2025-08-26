@@ -202,15 +202,24 @@ file:
 	})
 
 	t.Run("plural template parsing", func(t *testing.T) {
-		// English templates should be converted from plural forms
-		// ItemCount should use "other" form: "{{.entity}} items ({{.Count}})"
-		if !strings.Contains(generatedContent, `ItemCount: "{{.entity}} items ({{.Count}})"`) {
-			t.Error("Should convert English plural to 'other' form for ItemCount")
+		// English templates should preserve plural forms (one/other) for go-i18n
+		// ItemCount should have proper YAML plural structure
+		if !strings.Contains(generatedContent, `ItemCount:`) ||
+			!strings.Contains(generatedContent, `one: "{{.entity}} item"`) ||
+			!strings.Contains(generatedContent, `other: "{{.entity}} items ({{.Count}})"`) {
+			t.Error("Should preserve English plural forms (one/other) for ItemCount")
 		}
 
-		// UserCount should use "other" form: "{{.Count}} users"
-		if !strings.Contains(generatedContent, `UserCount: "{{.Count}} users"`) {
-			t.Error("Should convert English plural to 'other' form for UserCount")
+		// UserCount should have proper YAML plural structure
+		if !strings.Contains(generatedContent, `UserCount:`) ||
+			!strings.Contains(generatedContent, `one: "{{.Count}} user"`) ||
+			!strings.Contains(generatedContent, `other: "{{.Count}} users"`) {
+			t.Error("Should preserve English plural forms (one/other) for UserCount")
+		}
+
+		// Japanese should remain simple (no pluralization)
+		if !strings.Contains(generatedContent, `ItemCount: "{{.entity}} アイテム ({{.Count}}個)"`) {
+			t.Error("Japanese ItemCount should remain simple form")
 		}
 	})
 

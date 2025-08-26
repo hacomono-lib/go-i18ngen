@@ -53,3 +53,4 @@ testdata/out-go-i18n/
 !testdata/out-go-i18n/.gitkeep
 testdata/*.gen.go
 testdata/test_*.go
+tests/i18n.gen.go

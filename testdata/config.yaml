@@ -4,5 +4,5 @@ locales:
   - en
 messages: "./messages/*.yaml"
 placeholders: "./placeholders/*.yaml"
-output_dir: "./"
-output_package: i18n
+output_dir: "../tests/"
+output_package: tests

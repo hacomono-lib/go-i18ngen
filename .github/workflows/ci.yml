@@ -43,6 +43,9 @@ jobs:
     - name: Verify dependencies
       run: go mod verify
     
+    - name: Generate code
+      run: go generate ./testdata
+    
     - name: Build
       run: go build -v ./...
     
@@ -140,6 +143,9 @@ jobs:
         echo "GOCACHE=$HOME/.cache/go-build" >> $GITHUB_ENV
         echo "GOMODCACHE=$HOME/go/pkg/mod" >> $GITHUB_ENV
 
+    - name: Generate code
+      run: go generate ./testdata
+
     - name: Install golangci-lint
       run: |
         # Read version from Makefile
@@ -185,6 +191,9 @@ jobs:
       with:
         path: ~/go/bin
         key: ${{ runner.os }}-gosec-v2-latest
+
+    - name: Generate code
+      run: go generate ./testdata
 
     - name: Install Gosec
       run: |
