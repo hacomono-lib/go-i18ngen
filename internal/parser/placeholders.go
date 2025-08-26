@@ -56,7 +56,7 @@ func ParsePlaceholders(pattern string, locales []string, compound bool) ([]model
 		kind := strings.Split(base, ".")[0]
 		ext := filepath.Ext(file)
 
-		f, err := os.Open(file)
+		f, err := os.Open(file) // #nosec G304 - Opening placeholder files is intentional
 		if err != nil {
 			return nil, fmt.Errorf("failed to open placeholder file %q: %w", file, err)
 		}

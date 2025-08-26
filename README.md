@@ -202,7 +202,7 @@ Files must follow `name.locale.ext` pattern.
 
 ### Basic Template Syntax
 
-Messages support Go template syntax with placeholders:
+Messages support Go template syntax with placeholders using the standard [go-i18n](https://github.com/nicksnyder/go-i18n) library:
 
 ```yaml
 WelcomeMessage:
@@ -214,23 +214,6 @@ ErrorMessage:
   en: "Error: {{.entity}} {{.reason}}"
 ```
 
-### Template Functions
-
-| Function | Description | Input Example | Output Example |
-|----------|-------------|---------------|----------------|
-| `title` | Capitalizes first letter | `"member"` | `"Member"` |
-| `upper` | Converts to uppercase | `"error"` | `"ERROR"` |
-| `lower` | Converts to lowercase | `"WARNING"` | `"warning"` |
-
-```yaml
-FormattedMessage:
-  ja: "エラー: {{.entity}}"
-  en: "Error: {{.entity | title}}"  # Capitalizes entity
-  
-DebugMessage:
-  ja: "デバッグ: {{.component}}"
-  en: "DEBUG: {{.component | upper}}"  # Uppercase for debug
-```
 
 ### Suffix Notation (Advanced)
 

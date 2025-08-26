@@ -28,7 +28,7 @@ type Config struct {
 
 // LoadConfig loads configuration from a YAML file
 func LoadConfig(path string) (*Config, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) // #nosec G304 - Reading configuration file is intentional
 	if err != nil {
 		// Return empty config if file doesn't exist
 		return &Config{}, nil

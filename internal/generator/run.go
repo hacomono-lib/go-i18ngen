@@ -119,11 +119,8 @@ func Run(cfg *config.Config) (returnErr error) {
 	// Generate i18n file
 	outputFile := filepath.Join(cfg.OutputDir, "i18n.gen.go")
 
-	// Build template functions metadata
-	templateFunctions := model.BuildTemplateFunctionsMetadata(messages, cfg.Locales)
-
 	// Generate go-i18n code
-	if err := templatex.RenderGoI18nWithTemplateFunctions(
+	if err := templatex.RenderGoI18n(
 		outputFile,
 		cfg.OutputPackage,
 		primaryLocale,
@@ -132,7 +129,6 @@ func Run(cfg *config.Config) (returnErr error) {
 		defs.Placeholders,
 		defs.Messages,
 		cfg.Locales,
-		templateFunctions,
 	); err != nil {
 		return fmt.Errorf(
 			"failed to render go-i18n generated code to %q:\n  %w\n\nSuggestions:\n"+
