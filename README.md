@@ -649,8 +649,6 @@ make pre-commit    # Quick checks before committing
 ```bash
 # Using Docker Compose (recommended)
 docker compose run dev     # Start development environment
-docker compose run test    # Run tests in Docker
-docker compose run lint    # Run linter in Docker
 
 # Using Docker directly
 make docker-build          # Build Docker image
