@@ -305,9 +305,13 @@ func BuildTemplates(
 		if templates == nil {
 			templates = make(map[string]string)
 		}
+
+		// Process templates to convert suffix notation (e.g., {{.user:from}} -> {{.userFrom}})
+		processedTemplates := ProcessMessageTemplatesWithFieldInfos(templates, msg.FieldInfos)
+
 		messageTemplates = append(messageTemplates, templatex.MessageTemplate{
 			ID:        msg.ID,
-			Templates: templates,
+			Templates: processedTemplates,
 		})
 	}
 

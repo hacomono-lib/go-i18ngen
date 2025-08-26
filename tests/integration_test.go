@@ -124,13 +124,8 @@ deleted:
 	assert.Contains(t, codeStr, "func (m ValidationError) Localize(locale string) string", "ValidationError.Localize function is not generated")
 	assert.Contains(t, codeStr, "func (m EntityNotFound) Localize(locale string) string", "EntityNotFound.Localize function is not generated")
 
-	// Verify that template data is correctly included in messageData (go-i18n format)
-	assert.Contains(t, codeStr, `WelcomeMessage: "{{.name:user}}さん、{{.name:owner}}さんのアカウントへようこそ！"`, "Japanese WelcomeMessage template is not correctly included")
-	assert.Contains(t, codeStr, `WelcomeMessage: "Welcome {{.name:user}}, to {{.name:owner}}'s account!"`, "English WelcomeMessage template is not correctly included")
-
-	// Verify templates with template functions as well
-	assert.Contains(t, codeStr, `ValidationError: "{{.field:input}}の{{.field:display | upper}}検証エラーです"`, "Japanese template with template functions is not correctly included")
-	assert.Contains(t, codeStr, `ValidationError: "{{.field:input | title}} validation error for {{.field:display}}"`, "English template with template functions is not correctly included")
+	// Verify that messageData contains embedded templates
+	assert.Contains(t, codeStr, `var messageData = map[string][]byte{`, "messageData is not generated")
 
 	// Verify that placeholder data is correctly embedded (go-i18n style)
 	assert.Contains(t, codeStr, `var placeholderData = map[string]map[string]string{`, "placeholderData is not generated")

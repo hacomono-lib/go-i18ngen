@@ -11,8 +11,8 @@ WelcomeMessage:
   ja: "{{.name:user}}さん、{{.name:owner}}さんのアカウントへようこそ！"
   en: "Welcome {{.name:user}}, to {{.name:owner}}'s account!"
 ValidationError:
-  ja: "{{.field:input}}の{{.field:display | upper}}検証エラーです"
-  en: "{{.field:input | title}} validation error for {{.field:display}}"
+  ja: "{{.field:input}}の{{.field:display}}検証エラーです"
+  en: "{{.field:input}} validation error for {{.field:display}}"
 # Suffix notation example
 TransferMessage:
   ja: "{{.entity:from}}から{{.entity:to}}へ移動しました"

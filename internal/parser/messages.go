@@ -35,7 +35,7 @@ func ParseMessages(pattern string) ([]model.MessageSource, error) {
 
 	var results []model.MessageSource
 	for _, file := range files {
-		f, err := os.Open(file)
+		f, err := os.Open(file) // #nosec G304 - Opening message files is intentional
 		if err != nil {
 			return nil, fmt.Errorf("failed to open message file %q: %w", file, err)
 		}

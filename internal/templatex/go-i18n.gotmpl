@@ -21,7 +21,7 @@ var (
 // Message data embedded in the binary
 var messageData = map[string][]byte{
 {{- range $locale, $messages := .MessagesByLocale}}
-	"{{$locale}}": []byte(`{{range $msgID, $template := $messages}}{{$msgID}}: "{{$template}}"
+	"{{$locale}}": []byte(`{{range $msgID, $template := $messages}}{{$msgID}}:{{$template}}
 {{end}}`),
 {{- end}}
 }
@@ -125,71 +125,16 @@ func localizeWithConfig(messageID, locale string, templateData map[string]interf
 	return localizer.MustLocalize(config)
 }
 
-// buildTemplateData constructs template data with template function processing
+// buildTemplateData constructs template data for go-i18n localization
 func buildTemplateData(messageID, locale string, fields map[string]string) map[string]interface{} {
 	result := make(map[string]interface{}, len(fields)) // Pre-allocate capacity
 	
 	for fieldName, value := range fields {
-		result[fieldName] = processField(value, messageID, fieldName, locale)
+		result[fieldName] = value
 	}
 	
 	return result
 }
-
-// processField applies template functions to a field value
-func processField(value, messageID, fieldName, locale string) string {
-	if templateFunctions != nil {
-		if functions, exists := templateFunctions[messageID]; exists {
-			if localeFunctions, exists := functions[locale]; exists {
-				if fieldFunctions, exists := localeFunctions[fieldName]; exists {
-					return applyTemplateFunctions(value, fieldFunctions)
-				}
-			}
-		}
-	}
-	return value
-}
-
-// applyTemplateFunctions applies a series of template functions to a value
-func applyTemplateFunctions(value string, functions []string) string {
-	if len(functions) == 0 {
-		return value
-	}
-	
-	result := value
-	for _, fn := range functions {
-		switch fn {
-		case "title":
-			if len(result) > 0 {
-				var builder strings.Builder
-				builder.Grow(len(result))
-				builder.WriteString(strings.ToUpper(result[:1]))
-				builder.WriteString(result[1:])
-				result = builder.String()
-			}
-		case "upper":
-			result = strings.ToUpper(result)
-		case "lower":
-			result = strings.ToLower(result)
-		}
-	}
-	return result
-}
-
-// Template function metadata
-var templateFunctions = {{if .TemplateFunctions}}map[string]map[string]map[string][]string{
-{{- range $msgID, $localeMap := .TemplateFunctions}}
-	"{{$msgID}}": {
-		{{- range $locale, $fieldMap := $localeMap}}
-		"{{$locale}}": {
-			{{- range $field, $functions := $fieldMap}}
-			"{{$field}}": {{"{"}}{{range $functions}}"{{.}}",{{end}}{{"}"}},
-			{{- end}}
-		},
-		{{- end}}
-	},
-{{- end}}
-}{{else}}map[string]map[string]map[string][]string(nil){{end}}
 
 // Localizable interface for all i18n types
 type Localizable interface {

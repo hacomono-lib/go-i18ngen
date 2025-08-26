@@ -58,20 +58,74 @@ type PlaceholderTemplate struct {
 }
 
 type TemplateDef struct {
-	PackageName       string
-	PrimaryLocale     string
-	Messages          []MessageTemplate
-	Placeholders      []PlaceholderTemplate
-	PlaceholderDefs   []Placeholder
-	MessageDefs       []Message
-	Locales           []string
-	MessagesByLocale  map[string]map[string]string
-	TemplateFunctions map[string]map[string]map[string][]string
+	PackageName      string
+	PrimaryLocale    string
+	Messages         []MessageTemplate
+	Placeholders     []PlaceholderTemplate
+	PlaceholderDefs  []Placeholder
+	MessageDefs      []Message
+	Locales          []string
+	MessagesByLocale map[string]map[string]string
 }
 
 // TemplateConfig represents configuration for template generation
 type TemplateConfig struct {
 	// Future configuration options can be added here
+}
+
+// Helper functions
+
+// convertRawTemplateToYaml converts a raw template (which may be string or map) to YAML format
+func convertRawTemplateToYaml(rawTemplate interface{}) string {
+	switch v := rawTemplate.(type) {
+	case string:
+		// Simple string template - wrap in quotes and add space
+		return " \"" + strings.ReplaceAll(v, "\"", "\\\"") + "\""
+	case map[string]interface{}:
+		// Plural forms map (e.g., {"one": "...", "other": "..."})
+		// Convert to YAML block format for go-i18n
+		var parts []string
+		for form, template := range v {
+			if tmpl, ok := template.(string); ok {
+				parts = append(parts, fmt.Sprintf("%s: %q", form, tmpl))
+			}
+		}
+		sort.Strings(parts) // Consistent ordering
+		if len(parts) > 0 {
+			// For plural forms in go-i18n YAML format
+			return "\n  " + strings.Join(parts, "\n  ")
+		}
+		return ""
+	case map[interface{}]interface{}:
+		// Handle YAML-parsed format
+		var parts []string
+		for k, v := range v {
+			if form, ok := k.(string); ok {
+				if tmpl, ok := v.(string); ok {
+					parts = append(parts, fmt.Sprintf("%s: %q", form, tmpl))
+				}
+			}
+		}
+		sort.Strings(parts)
+		if len(parts) > 0 {
+			// For plural forms in go-i18n YAML format
+			return "\n  " + strings.Join(parts, "\n  ")
+		}
+		return ""
+	default:
+		// Unknown type, convert to string
+		return fmt.Sprintf("%v", v)
+	}
+}
+
+// findMessageDef finds a MessageDef by ID
+func findMessageDef(messageDefs []Message, id string) *Message {
+	for i, msgDef := range messageDefs {
+		if msgDef.ID == id {
+			return &messageDefs[i]
+		}
+	}
+	return nil
 }
 
 // Template function implementations
@@ -252,21 +306,6 @@ func RenderGoI18n(
 	return RenderGoI18nWithConfig(outPath, pkg, primaryLocale, messages, placeholders, placeholderDefs, messageDefs, locales, nil)
 }
 
-func RenderGoI18nWithTemplateFunctions(
-	outPath, pkg, primaryLocale string,
-	messages []MessageTemplate,
-	placeholders []PlaceholderTemplate,
-	placeholderDefs []Placeholder,
-	messageDefs []Message,
-	locales []string,
-	templateFunctions map[string]map[string]map[string][]string,
-) error {
-	return RenderGoI18nWithConfigAndTemplateFunctions(
-		outPath, pkg, primaryLocale, messages, placeholders,
-		placeholderDefs, messageDefs, locales, templateFunctions, nil,
-	)
-}
-
 func RenderGoI18nWithConfig(
 	outPath, pkg, primaryLocale string,
 	messages []MessageTemplate,
@@ -276,48 +315,67 @@ func RenderGoI18nWithConfig(
 	locales []string,
 	config *TemplateConfig,
 ) error {
-	// Pass nil templateFunctions to avoid unnecessary memory allocation
-	return RenderGoI18nWithConfigAndTemplateFunctions(
-		outPath, pkg, primaryLocale, messages, placeholders,
-		placeholderDefs, messageDefs, locales, nil, config,
-	)
-}
-
-func RenderGoI18nWithConfigAndTemplateFunctions(
-	outPath, pkg, primaryLocale string,
-	messages []MessageTemplate,
-	placeholders []PlaceholderTemplate,
-	placeholderDefs []Placeholder,
-	messageDefs []Message,
-	locales []string,
-	templateFunctions map[string]map[string]map[string][]string,
-	config *TemplateConfig,
-) error {
 	// Build message data by locale for go-i18n
 	messagesByLocale := make(map[string]map[string]string)
 	for _, locale := range locales {
 		messagesByLocale[locale] = make(map[string]string)
 	}
 
-	for _, msg := range messages {
-		for locale, template := range msg.Templates {
-			if messagesByLocale[locale] == nil {
-				messagesByLocale[locale] = make(map[string]string)
+	// Use both RawTemplates (for plural forms) and processed Templates (for suffix notation)
+	for _, msgDef := range messageDefs {
+		if msgDef.RawTemplates != nil {
+			// Check if this is a plural message by looking for map structures
+			for locale, rawTemplate := range msgDef.RawTemplates {
+				if messagesByLocale[locale] == nil {
+					messagesByLocale[locale] = make(map[string]string)
+				}
+
+				// If rawTemplate is a map, it's a plural form - use it directly
+				switch rawTemplate.(type) {
+				case map[string]interface{}, map[interface{}]interface{}:
+					messagesByLocale[locale][msgDef.ID] = convertRawTemplateToYaml(rawTemplate)
+				default:
+					// For non-plural templates, use processed Templates to get suffix notation conversion
+					if processedTemplate, exists := msgDef.Templates[locale]; exists {
+						messagesByLocale[locale][msgDef.ID] = convertRawTemplateToYaml(processedTemplate)
+					} else {
+						// Fallback to raw template if processed version not available
+						messagesByLocale[locale][msgDef.ID] = convertRawTemplateToYaml(rawTemplate)
+					}
+				}
 			}
-			messagesByLocale[locale][msg.ID] = template
+		} else {
+			// Use processed Templates if RawTemplates not available
+			for locale, template := range msgDef.Templates {
+				if messagesByLocale[locale] == nil {
+					messagesByLocale[locale] = make(map[string]string)
+				}
+				messagesByLocale[locale][msgDef.ID] = convertRawTemplateToYaml(template)
+			}
+		}
+	}
+
+	// Also add any messages that don't have MessageDef equivalent
+	for _, msg := range messages {
+		if msgDef := findMessageDef(messageDefs, msg.ID); msgDef == nil {
+			for locale, template := range msg.Templates {
+				if messagesByLocale[locale] == nil {
+					messagesByLocale[locale] = make(map[string]string)
+				}
+				messagesByLocale[locale][msg.ID] = template
+			}
 		}
 	}
 
 	code, err := RenderTemplateWithConfig(goI18nTemplateContent, TemplateDef{
-		PackageName:       pkg,
-		PrimaryLocale:     primaryLocale,
-		Messages:          messages,
-		Placeholders:      placeholders,
-		PlaceholderDefs:   placeholderDefs,
-		MessageDefs:       messageDefs,
-		Locales:           locales,
-		MessagesByLocale:  messagesByLocale,
-		TemplateFunctions: templateFunctions,
+		PackageName:      pkg,
+		PrimaryLocale:    primaryLocale,
+		Messages:         messages,
+		Placeholders:     placeholders,
+		PlaceholderDefs:  placeholderDefs,
+		MessageDefs:      messageDefs,
+		Locales:          locales,
+		MessagesByLocale: messagesByLocale,
 	}, config)
 	if err != nil {
 		return err

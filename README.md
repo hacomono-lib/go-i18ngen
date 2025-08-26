@@ -24,7 +24,6 @@ go-i18ngen is a CLI tool that automatically generates type-safe Go code for inte
 - ✅ **Type-safe message construction** - No more string concatenation or runtime errors
 - ✅ **CLDR pluralization support** - Full Unicode CLDR plural rules powered by go-i18n
 - ✅ **Automatic template rendering** - Built-in Go template processing with placeholders
-- ✅ **Template functions** - Essential string manipulation (title, upper, lower)
 - ✅ **Suffix notation** - Meaningful parameter names with `:suffix` syntax
 - ✅ **Locale fallback handling** - Graceful degradation when translations are missing
 - ✅ **Compile-time validation** - Catch missing parameters at build time
@@ -202,7 +201,7 @@ Files must follow `name.locale.ext` pattern.
 
 ### Basic Template Syntax
 
-Messages support Go template syntax with placeholders:
+Messages support Go template syntax with placeholders using the standard [go-i18n](https://github.com/nicksnyder/go-i18n) library:
 
 ```yaml
 WelcomeMessage:
@@ -214,23 +213,6 @@ ErrorMessage:
   en: "Error: {{.entity}} {{.reason}}"
 ```
 
-### Template Functions
-
-| Function | Description | Input Example | Output Example |
-|----------|-------------|---------------|----------------|
-| `title` | Capitalizes first letter | `"member"` | `"Member"` |
-| `upper` | Converts to uppercase | `"error"` | `"ERROR"` |
-| `lower` | Converts to lowercase | `"WARNING"` | `"warning"` |
-
-```yaml
-FormattedMessage:
-  ja: "エラー: {{.entity}}"
-  en: "Error: {{.entity | title}}"  # Capitalizes entity
-  
-DebugMessage:
-  ja: "デバッグ: {{.component}}"
-  en: "DEBUG: {{.component | upper}}"  # Uppercase for debug
-```
 
 ### Suffix Notation (Advanced)
 
@@ -804,7 +786,6 @@ The `testdata/` directory contains working examples that demonstrate various fea
 
 - **Basic message localization**
 - **Pluralization with CLDR rules**
-- **Template functions usage**
 - **Suffix notation for complex messages**
 - **Multi-language support**
 - **Error handling patterns**

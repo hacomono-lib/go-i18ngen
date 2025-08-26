@@ -11,9 +11,31 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  generate:
+    name: Generate Code
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.25'
+    
+    - name: Generate code
+      run: go generate ./testdata
+    
+    - name: Cache generated code
+      uses: actions/cache/save@v4
+      with:
+        path: tests/i18n.gen.go
+        key: generated-code-${{ github.sha }}
+
   test:
     name: Test
     runs-on: ubuntu-latest
+    needs: generate
     strategy:
       matrix:
         go-version: ['1.21', '1.22', '1.23', '1.24', '1.25']
@@ -42,6 +64,13 @@ jobs:
     
     - name: Verify dependencies
       run: go mod verify
+    
+    - name: Restore generated code
+      uses: actions/cache/restore@v4
+      with:
+        path: tests/i18n.gen.go
+        key: generated-code-${{ github.sha }}
+        fail-on-cache-miss: true
     
     - name: Build
       run: go build -v ./...
@@ -94,7 +123,7 @@ jobs:
   build:
     name: Build Binary
     runs-on: ubuntu-latest
-    needs: test
+    needs: [test, generate]
     
     steps:
     - name: Checkout code
@@ -114,6 +143,7 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    needs: generate
     
     steps:
     - name: Checkout code
@@ -140,6 +170,13 @@ jobs:
         echo "GOCACHE=$HOME/.cache/go-build" >> $GITHUB_ENV
         echo "GOMODCACHE=$HOME/go/pkg/mod" >> $GITHUB_ENV
 
+    - name: Restore generated code
+      uses: actions/cache/restore@v4
+      with:
+        path: tests/i18n.gen.go
+        key: generated-code-${{ github.sha }}
+        fail-on-cache-miss: true
+
     - name: Install golangci-lint
       run: |
         # Read version from Makefile
@@ -153,6 +190,7 @@ jobs:
   security:
     name: Security Scan
     runs-on: ubuntu-latest
+    needs: generate
     
     steps:
     - name: Checkout code
@@ -185,6 +223,13 @@ jobs:
       with:
         path: ~/go/bin
         key: ${{ runner.os }}-gosec-v2-latest
+
+    - name: Restore generated code
+      uses: actions/cache/restore@v4
+      with:
+        path: tests/i18n.gen.go
+        key: generated-code-${{ github.sha }}
+        fail-on-cache-miss: true
 
     - name: Install Gosec
       run: |

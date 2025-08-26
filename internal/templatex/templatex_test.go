@@ -148,32 +148,7 @@ func (s *TemplatexTestSuite) TestRenderGoI18n_EmptyData() {
 	s.Assert().Contains(contentStr, "package emptypkg")
 }
 
-func (s *TemplatexTestSuite) TestRenderGoI18nWithTemplateFunctions_Success() {
-	outputFile := filepath.Join(s.tempDir, "config_test.go")
-
-	templateFunctions := map[string]map[string]map[string][]string{}
-
-	err := RenderGoI18nWithTemplateFunctions(
-		outputFile,
-		"configpkg",
-		"en",
-		[]MessageTemplate{},
-		[]PlaceholderTemplate{},
-		[]Placeholder{},
-		[]Message{},
-		[]string{"en"},
-		templateFunctions,
-	)
-
-	s.Assert().NoError(err)
-	s.Assert().FileExists(outputFile)
-
-	content, err := os.ReadFile(outputFile)
-	s.Require().NoError(err)
-
-	contentStr := string(content)
-	s.Assert().Contains(contentStr, "package configpkg")
-}
+// TestRenderGoI18nWithTemplateFunctions removed - template functions disabled
 
 func (s *TemplatexTestSuite) TestRenderGoI18n_WithMinimalData() {
 	outputFile := filepath.Join(s.tempDir, "minimal.go")

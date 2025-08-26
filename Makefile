@@ -41,20 +41,24 @@ deps: ## Download dependencies
 tidy: ## Clean up dependencies
 	$(GOMOD) tidy
 
+.PHONY: generate
+generate: ## Generate code (testdata, etc.)
+	$(GOCMD) generate ./testdata
+
 .PHONY: fmt
 fmt: ## Format code
 	$(GOFMT) -s -w .
 
 .PHONY: lint
-lint: install-tools ## Run linter
+lint: install-tools generate ## Run linter (with code generation)
 	$$(go env GOPATH)/bin/golangci-lint run --timeout=5m
 
 .PHONY: test
-test: ## Run tests
+test: generate ## Run tests (with code generation)
 	$(GOTEST) -v -race -coverprofile=coverage.out ./...
 
 .PHONY: test-short
-test-short: ## Run tests without race detector
+test-short: generate ## Run tests without race detector (with code generation)
 	$(GOTEST) -v ./...
 
 .PHONY: coverage
@@ -90,7 +94,7 @@ coverage-check: test ## Check if coverage meets minimum threshold (80%)
 	fi
 
 .PHONY: bench
-bench: ## Run benchmarks
+bench: generate ## Run benchmarks (with code generation)
 	$(GOTEST) -bench=. -benchmem ./...
 
 .PHONY: build
@@ -166,7 +170,7 @@ docker-build: ## Build Docker image (if Dockerfile exists)
 	fi
 
 .PHONY: security
-security: ## Run security scan
+security: generate ## Run security scan (with code generation)
 	@command -v gosec >/dev/null 2>&1 || { \
 		echo "Installing gosec..."; \
 		go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest; \
