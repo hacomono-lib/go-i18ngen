@@ -1,6 +1,6 @@
 module github.com/hacomono-lib/go-i18ngen
 
-go 1.23.2
+go 1.25.0
 
 require (
 	github.com/nicksnyder/go-i18n/v2 v2.6.0
