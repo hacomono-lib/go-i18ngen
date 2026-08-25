@@ -3,7 +3,7 @@ module github.com/hacomono-lib/go-i18ngen
 go 1.25.0
 
 require (
-	github.com/nicksnyder/go-i18n/v2 v2.6.0
+	github.com/nicksnyder/go-i18n/v2 v2.6.1
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/text v0.41.0
