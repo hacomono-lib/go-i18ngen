@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/hacomono-lib/go-i18ngen/workflows/CI/badge.svg)](https://github.com/hacomono-lib/go-i18ngen/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Go 1.23.2+](https://img.shields.io/badge/Go-1.23.2+-00ADD8?logo=go)](https://golang.org/)
+[![Go 1.25.0+](https://img.shields.io/badge/Go-1.25.0+-00ADD8?logo=go)](https://golang.org/)
 
 go-i18ngen is a CLI tool that automatically generates type-safe Go code for internationalization (i18n) from YAML configuration files. It creates strongly-typed structs and functions that ensure compile-time safety for localized messages and placeholders.
 
@@ -586,7 +586,7 @@ jobs:
     - uses: actions/checkout@v4
     - uses: actions/setup-go@v4
       with:
-        go-version: '1.23.2'
+        go-version: '1.25.0'
     
     - name: Install i18ngen
       run: go install github.com/hacomono-lib/go-i18ngen@latest
@@ -605,7 +605,7 @@ jobs:
 
 #### Prerequisites
 
-- Go 1.23.2 or later
+- Go 1.25.0 or later
 - Make (optional)
 - Docker (optional)
 
@@ -755,7 +755,7 @@ go-i18ngen/
 
 3. **Build fails with Go version mismatch**
    ```bash
-   go version  # Should be 1.23.2 or later
+   go version  # Should be 1.25.0 or later
    ```
 
 4. **Permission denied on Docker**
