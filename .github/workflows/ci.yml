@@ -16,18 +16,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
     
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v7
       with:
-        go-version: '1.25'
-    
+        go-version: 1.25.x
+
     - name: Generate code
       run: go generate ./testdata
     
     - name: Cache generated code
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@v6
       with:
         path: tests/i18n.gen.go
         key: generated-code-${{ github.sha }}
@@ -37,20 +37,21 @@ jobs:
     runs-on: ubuntu-latest
     needs: generate
     strategy:
+      fail-fast: false
       matrix:
-        go-version: ['1.21', '1.22', '1.23', '1.24', '1.25']
+        go-version: [1.23.x, 1.24.x, 1.25.x, 1.26.x, 1.27.x]
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
     
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v7
       with:
         go-version: ${{ matrix.go-version }}
     
     - name: Cache Go modules
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: |
           ~/.cache/go-build
@@ -66,7 +67,7 @@ jobs:
       run: go mod verify
     
     - name: Restore generated code
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v6
       with:
         path: tests/i18n.gen.go
         key: generated-code-${{ github.sha }}
@@ -127,13 +128,13 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
     
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v7
       with:
-        go-version: '1.25'
-    
+        go-version: 1.25.x
+
     - name: Build binary
       run: go build -v -o go-i18ngen .
     
@@ -147,31 +148,31 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
     
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v7
       with:
-        go-version: '1.25'
-    
+        go-version: 1.25.x
+
     - name: Cache Go modules and build cache
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: |
           ~/.cache/go-build
           ~/go/pkg/mod
-        key: ${{ runner.os }}-go-1.25-${{ hashFiles('**/go.sum') }}
+        key: ${{ runner.os }}-go-1.25.x-${{ hashFiles('**/go.sum') }}
         restore-keys: |
-          ${{ runner.os }}-go-1.25-
+          ${{ runner.os }}-go-1.25.x-
           ${{ runner.os }}-go-
-        
+
     - name: Set Go environment variables
       run: |
         echo "GOCACHE=$HOME/.cache/go-build" >> $GITHUB_ENV
         echo "GOMODCACHE=$HOME/go/pkg/mod" >> $GITHUB_ENV
 
     - name: Restore generated code
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v6
       with:
         path: tests/i18n.gen.go
         key: generated-code-${{ github.sha }}
@@ -194,24 +195,24 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
     
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v7
       with:
-        go-version: '1.25'
-    
+        go-version: 1.27.x
+
     - name: Cache Go modules and build cache
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: |
           ~/.cache/go-build
           ~/go/pkg/mod
-        key: ${{ runner.os }}-go-1.25-${{ hashFiles('**/go.sum') }}
+        key: ${{ runner.os }}-go-1.27.x-${{ hashFiles('**/go.sum') }}
         restore-keys: |
-          ${{ runner.os }}-go-1.25-
+          ${{ runner.os }}-go-1.27.x-
           ${{ runner.os }}-go-
-        
+
     - name: Set Go environment variables
       run: |
         echo "GOCACHE=$HOME/.cache/go-build" >> $GITHUB_ENV
@@ -219,13 +220,13 @@ jobs:
         echo "GOBIN=$HOME/go/bin" >> $GITHUB_ENV
 
     - name: Cache Gosec binary
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: ~/go/bin
         key: ${{ runner.os }}-gosec-v2-latest
 
     - name: Restore generated code
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v6
       with:
         path: tests/i18n.gen.go
         key: generated-code-${{ github.sha }}
