@@ -44,7 +44,7 @@ jobs:
         echo "lines_covered=$LINES_COVERED" >> $GITHUB_OUTPUT
     
     - name: Create coverage comment
-      uses: actions/github-script@v7
+      uses: actions/github-script@v9
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
