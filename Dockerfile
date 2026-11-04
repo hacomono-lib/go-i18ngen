@@ -17,6 +17,7 @@ RUN apk add --no-cache \
 
 # Copy Makefile first to leverage layer caching
 COPY Makefile ./
+COPY scripts/install-golangci-lint.sh ./scripts/
 
 # Install golangci-lint
 RUN make install-tools
