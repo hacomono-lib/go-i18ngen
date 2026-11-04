@@ -707,7 +707,7 @@ The project uses specific versions of development tools to ensure consistency be
 
 ```bash
 # To update golangci-lint version, edit this line in Makefile:
-GOLANGCI_LINT_VERSION=v2.11.4
+GOLANGCI_LINT_VERSION=v2.15.0
 
 # Then run to update local tools:
 make install-tools

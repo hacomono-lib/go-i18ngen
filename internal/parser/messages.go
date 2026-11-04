@@ -16,6 +16,8 @@ import (
 
 const (
 	jsonExt = ".json"
+	// defaultLocale is the locale key used when a message file uses the simple (non-locale-keyed) format.
+	defaultLocale = "default"
 )
 
 // Pre-compiled regular expressions for better performance
@@ -296,10 +298,10 @@ func decodeMessageFileWithRaw(file *os.File, ext string) (*MessageFileData, erro
 	// Convert simple format to compound format
 	for id, template := range data {
 		result.Templates[id] = map[string]string{
-			"default": template, // Use "default" as locale for simple format
+			defaultLocale: template,
 		}
 		result.RawTemplates[id] = map[string]interface{}{
-			"default": template,
+			defaultLocale: template,
 		}
 	}
 	return result, nil
