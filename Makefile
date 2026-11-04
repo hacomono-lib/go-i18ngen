@@ -9,7 +9,7 @@ GOFMT=gofmt
 GOLINT=golangci-lint
 
 # golangci-lint version (single source of truth - CI reads this value)
-GOLANGCI_LINT_VERSION=v2.4.0
+GOLANGCI_LINT_VERSION=v2.11.4
 GOSEC_VERSION=latest
 
 # Binary info
